@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { propertiesApi, Review, Property } from '../../services/api';
+import { propertiesApi, reviewsApi, Review, Property } from '../../services/api';
 import { Star, Calendar, User, ThumbsUp, MapPin, Bed, Bath, Users } from 'lucide-react';
 import './PublicReviews.css';
 
@@ -9,6 +9,37 @@ const PublicReviews: React.FC = () => {
   const [property, setProperty] = useState<Property | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Calculate review statistics
+  const reviewStats = useMemo(() => {
+    if (reviews.length === 0) return null;
+
+    const totalReviews = reviews.length;
+    const avgRating = reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews;
+
+    // Calculate category averages
+    const categoryStats: { [key: string]: number[] } = {};
+    reviews.forEach(review => {
+      review.reviewCategory.forEach(cat => {
+        if (!categoryStats[cat.category]) {
+          categoryStats[cat.category] = [];
+        }
+        categoryStats[cat.category].push(cat.rating);
+      });
+    });
+
+    const categoryAverages = Object.entries(categoryStats).map(([category, ratings]) => ({
+      category,
+      average: ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length,
+      count: ratings.length
+    }));
+
+    return {
+      totalReviews,
+      avgRating,
+      categoryAverages
+    };
+  }, [reviews]);
 
   useEffect(() => {
     loadPropertyAndReviews();
@@ -23,6 +54,22 @@ const PublicReviews: React.FC = () => {
       console.error('Error loading property:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleHelpfulClick = async (reviewId: string) => {
+    try {
+      await reviewsApi.markHelpful(reviewId, true);
+      // Update the local state to reflect the change
+      setReviews(prevReviews =>
+        prevReviews.map(review =>
+          review._id === reviewId
+            ? { ...review, helpful: (review.helpful || 0) + 1 }
+            : review
+        )
+      );
+    } catch (error) {
+      console.error('Error marking review as helpful:', error);
     }
   };
 
@@ -86,6 +133,48 @@ const PublicReviews: React.FC = () => {
             <p className="section-subtitle">What our guests are saying about this property</p>
           </div>
 
+          {reviewStats && (
+            <div className="review-stats">
+              <div className="stats-overview">
+                <div className="overall-rating">
+                  <div className="rating-number">{reviewStats.avgRating.toFixed(1)}</div>
+                  <div className="rating-stars">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        size={20}
+                        fill={i < Math.floor(reviewStats.avgRating / 2) ? "currentColor" : "none"}
+                        className="star"
+                      />
+                    ))}
+                  </div>
+                  <div className="rating-text">
+                    Based on {reviewStats.totalReviews} review{reviewStats.totalReviews !== 1 ? 's' : ''}
+                  </div>
+                </div>
+
+                {reviewStats.categoryAverages.length > 0 && (
+                  <div className="category-ratings">
+                    {reviewStats.categoryAverages.map((cat) => (
+                      <div key={cat.category} className="category-item">
+                        <span className="category-name">
+                          {cat.category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </span>
+                        <div className="category-bar">
+                          <div
+                            className="category-fill"
+                            style={{ width: `${(cat.average / 10) * 100}%` }}
+                          ></div>
+                        </div>
+                        <span className="category-score">{cat.average.toFixed(1)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {reviews.length === 0 ? (
             <div className="no-reviews">
               <p>No reviews available for this property yet.</p>
@@ -135,7 +224,13 @@ const PublicReviews: React.FC = () => {
                   </div>
 
                   <div className="review-footer">
-                    <button className="helpful-btn">
+                    <div className="review-channel">
+                      <span className="channel-badge">{review.channel}</span>
+                    </div>
+                    <button
+                      className="helpful-btn"
+                      onClick={() => handleHelpfulClick(review._id)}
+                    >
                       <ThumbsUp size={14} />
                       <span>Helpful ({review.helpful || 0})</span>
                     </button>

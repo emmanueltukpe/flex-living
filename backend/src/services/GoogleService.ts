@@ -270,32 +270,65 @@ export class GoogleService extends BaseService {
 
   private getDocumentation(): any {
     return {
-      feasibility: "Google Reviews can be integrated using Google Places API",
+      feasibility:
+        "FEASIBLE - Google Reviews can be integrated using Google Places API",
+      status: "Successfully implemented with mock data fallback",
       requirements: [
-        "1. Google Cloud Platform account",
-        "2. Enable Places API",
-        "3. Get API key with proper restrictions",
-        "4. Find Place IDs for each property",
+        "1. Google Cloud Platform account with billing enabled",
+        "2. Enable Places API (New) in Google Cloud Console",
+        "3. Create API key with proper restrictions (HTTP referrers or IP addresses)",
+        "4. Find Place IDs for each property using Place Search API",
+        "5. Set GOOGLE_PLACES_API_KEY environment variable",
       ],
       implementation: {
-        endpoint: "https://maps.googleapis.com/maps/api/place/details/json",
+        primaryEndpoint:
+          "https://maps.googleapis.com/maps/api/place/details/json",
+        searchEndpoint:
+          "https://maps.googleapis.com/maps/api/place/textsearch/json",
         parameters: {
-          place_id: "Property Place ID from Google",
-          fields: "reviews,rating,user_ratings_total",
+          place_id:
+            "Property Place ID from Google (e.g., ChIJN1t_tDeuEmsRUsoyG83frY4)",
+          fields: "name,rating,user_ratings_total,reviews",
           key: "Your Google API Key",
         },
+        sampleRequest:
+          "GET /api/google/reviews?placeId=ChIJN1t_tDeuEmsRUsoyG83frY4",
       },
       limitations: [
-        "Maximum 5 most relevant reviews per place",
-        "Cannot get all reviews",
-        "Reviews are selected by Google algorithm",
-        "Requires finding Place ID for each property",
-        "API has usage limits and costs",
+        "Maximum 5 most relevant reviews per place (Google's limitation)",
+        "Cannot retrieve all reviews - only those selected by Google's algorithm",
+        "Reviews are in English or the language of the reviewer",
+        "No control over which reviews are returned",
+        "API has usage limits: $17 per 1000 requests for Place Details",
+        "Rate limiting: 100 requests per second per project",
+      ],
+      benefits: [
+        "High-quality, verified reviews from Google users",
+        "Includes reviewer names and profile photos",
+        "Reviews are moderated by Google",
+        "Provides overall rating and total review count",
+        "Real-time data directly from Google",
       ],
       alternativeSolutions: [
-        "Google My Business API for managed locations",
-        "Web scraping (against ToS)",
-        "Third-party review aggregation services",
+        "Google My Business API - for businesses you own/manage",
+        "Google Business Profile API - newer alternative to My Business API",
+        "Third-party review aggregation services (ReviewTrackers, Podium)",
+        "Direct integration with booking platforms (Airbnb, Booking.com)",
+        "Web scraping (NOT RECOMMENDED - violates Terms of Service)",
+      ],
+      costEstimate: {
+        placeDetails: "$17 per 1000 requests",
+        placeSearch: "$32 per 1000 requests",
+        monthlyEstimate: "~$50-200 for typical property management company",
+      },
+      setupInstructions: [
+        "1. Go to Google Cloud Console (console.cloud.google.com)",
+        "2. Create a new project or select existing one",
+        "3. Enable Places API (New) in API Library",
+        "4. Create credentials (API Key) in Credentials section",
+        "5. Restrict API key to specific APIs and domains/IPs",
+        "6. Add API key to .env file as GOOGLE_PLACES_API_KEY",
+        "7. Test with /api/google/status endpoint",
       ],
     };
   }
@@ -307,10 +340,64 @@ export class GoogleService extends BaseService {
   getApiStatus(): {
     configured: boolean;
     hasKey: boolean;
+    documentation: any;
+    testEndpoints: string[];
   } {
     return {
       configured: this.isApiConfigured(),
       hasKey: !!this.apiKey,
+      documentation: this.getDocumentation(),
+      testEndpoints: [
+        "GET /api/google/status - Check API configuration status",
+        "GET /api/google/reviews?placeId=ChIJN1t_tDeuEmsRUsoyG83frY4 - Get reviews for a place",
+        "GET /api/google/place-search?query=FlexLiving+London - Search for places",
+      ],
     };
+  }
+
+  async testApiConnection(): Promise<{
+    success: boolean;
+    message: string;
+    error?: string;
+  }> {
+    if (!this.isApiConfigured()) {
+      return {
+        success: false,
+        message:
+          "Google Places API not configured. Please set GOOGLE_PLACES_API_KEY environment variable.",
+      };
+    }
+
+    try {
+      // Test with a well-known place ID (Google Sydney office)
+      const testPlaceId = "ChIJN1t_tDeuEmsRUsoyG83frY4";
+      const response = await axios.get(`${this.baseUrl}/details/json`, {
+        params: {
+          place_id: testPlaceId,
+          fields: "name,rating",
+          key: this.apiKey,
+        },
+        timeout: 5000,
+      });
+
+      if (response.data.status === "OK") {
+        return {
+          success: true,
+          message: "Google Places API connection successful",
+        };
+      } else {
+        return {
+          success: false,
+          message: `Google Places API error: ${response.data.status}`,
+          error: response.data.error_message || "Unknown API error",
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: "Failed to connect to Google Places API",
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
   }
 }

@@ -72,6 +72,9 @@ const ReviewFilters: React.FC<ReviewFiltersProps> = ({
             <option value="Booking.com">Booking.com</option>
             <option value="Direct">Direct</option>
             <option value="Vrbo">Vrbo</option>
+            <option value="Expedia">Expedia</option>
+            <option value="Google">Google</option>
+            <option value="Other">Other</option>
           </select>
         </div>
         

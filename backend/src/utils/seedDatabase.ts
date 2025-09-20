@@ -8,12 +8,16 @@ export const seedDatabase = async () => {
     const reviewCount = await Review.countDocuments();
     const propertyCount = await Property.countDocuments();
 
-    if (reviewCount > 0 || propertyCount > 0) {
-      return;
-    }
+    // if (reviewCount > 0 || propertyCount > 0) {
+    //   return;
+    // }
 
     // Seed properties
-    for (const property of mockData.properties) {
+    for (const property of mockData.properties)
+    {
+      if(await Property.exists({ externalId: property.id })) {
+        continue;
+      }
       await Property.create({
         externalId: property.id,
         name: property.name,
@@ -28,7 +32,11 @@ export const seedDatabase = async () => {
     }
 
     // Seed reviews
-    for (const review of mockData.reviews) {
+    for (const review of mockData.reviews)
+    {
+      if(await Review.exists({ externalId: review.id })) {
+        continue;
+      }
       await Review.create({
         externalId: review.id,
         type: review.type || "guest-to-host",

@@ -221,4 +221,32 @@ export class ReviewService extends BaseService {
       notHelpful: review.notHelpful || 0,
     };
   }
+
+  async bulkUpdate(reviewIds: string[], updates: any): Promise<any> {
+    const validUpdates = this.sanitizeUpdateData(updates);
+
+    const result = await this.reviewRepository.bulkUpdate(
+      reviewIds,
+      validUpdates
+    );
+    return result;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const result = await this.reviewRepository.delete(id);
+    return result;
+  }
+
+  private sanitizeUpdateData(updates: any): any {
+    const allowedFields = ["status", "showOnWebsite", "responseText"];
+    const sanitized: any = {};
+
+    for (const field of allowedFields) {
+      if (updates[field] !== undefined) {
+        sanitized[field] = updates[field];
+      }
+    }
+
+    return sanitized;
+  }
 }
