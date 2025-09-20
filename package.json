@@ -1,0 +1,34 @@
+{
+  "name": "flexliving-reviews-dashboard",
+  "version": "1.0.0",
+  "description": "FlexLiving Reviews Management Dashboard",
+  "private": true,
+  "scripts": {
+    "install:all": "npm run install:backend && npm run install:frontend",
+    "install:backend": "cd backend && npm install",
+    "install:frontend": "cd frontend && npm install",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm start",
+    "build": "npm run build:frontend",
+    "build:frontend": "cd frontend && npm run build",
+    "start": "./start.sh",
+    "test": "echo \"Run tests in respective directories\"",
+    "clean": "rm -rf backend/node_modules frontend/node_modules"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  },
+  "keywords": [
+    "flexliving",
+    "reviews",
+    "dashboard",
+    "property-management",
+    "react",
+    "express",
+    "mongodb",
+    "typescript"
+  ],
+  "author": "FlexLiving Development Team",
+  "license": "MIT"
+}

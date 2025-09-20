@@ -1,0 +1,1298 @@
+openapi: 3.0.3
+info:
+  title: FlexLiving Reviews API
+  description: |
+    A comprehensive review management system for FlexLiving properties with integrations for Hostaway and Google Reviews.
+    
+    This API provides endpoints for managing property reviews, statistics, and external integrations.
+    
+    ## Features
+    - Review management with filtering and pagination
+    - Property management with review aggregation
+    - Hostaway integration for review synchronization
+    - Google Places API integration for review exploration
+    - Comprehensive statistics and analytics
+    
+  version: 1.0.0
+  contact:
+    name: FlexLiving Development Team
+    email: dev@flexliving.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5001
+    description: Development server
+  - url: ""
+    description: Production server (to be configured)
+
+tags:
+  - name: Health
+    description: API health and status endpoints
+  - name: Reviews
+    description: Review management operations
+  - name: Properties
+    description: Property management operations
+  - name: Hostaway
+    description: Hostaway integration endpoints
+  - name: Google
+    description: Google Places API integration endpoints
+
+paths:
+  /api/health:
+    get:
+      tags:
+        - Health
+      summary: Get API health status
+      description: Returns the health status of the API and database connection
+      operationId: getHealthStatus
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "ok"
+                message: "FlexLiving Reviews API"
+                timestamp: "2024-01-15T10:30:00.000Z"
+                database:
+                  status: "healthy"
+                  state: "connected"
+                  host: "localhost"
+                  database: "flexliving-reviews"
+                uptime: 3600.5
+        '503':
+          description: API is unhealthy or degraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "degraded"
+                message: "FlexLiving Reviews API"
+                timestamp: "2024-01-15T10:30:00.000Z"
+                database:
+                  status: "unhealthy"
+                  state: "disconnected"
+                  error: "Connection timeout"
+                uptime: 3600.5
+
+  /api/reviews:
+    get:
+      tags:
+        - Reviews
+      summary: Get all reviews with filtering and pagination
+      description: Retrieve reviews with optional filtering by property, channel, rating, status, and date range
+      operationId: getAllReviews
+      parameters:
+        - name: listingId
+          in: query
+          description: Filter by property listing ID
+          required: false
+          schema:
+            type: string
+            example: "PROP001"
+        - name: channel
+          in: query
+          description: Filter by booking channel
+          required: false
+          schema:
+            type: string
+            enum: [Airbnb, Booking.com, Direct, Vrbo, Expedia, Google, Other]
+            example: "Airbnb"
+        - name: rating
+          in: query
+          description: Filter by minimum rating
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+            example: 8
+        - name: status
+          in: query
+          description: Filter by review status
+          required: false
+          schema:
+            type: string
+            enum: [published, pending, rejected]
+            example: "published"
+        - name: showOnWebsite
+          in: query
+          description: Filter by website visibility
+          required: false
+          schema:
+            type: boolean
+            example: true
+        - name: startDate
+          in: query
+          description: Filter reviews from this date (ISO 8601)
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: endDate
+          in: query
+          description: Filter reviews until this date (ISO 8601)
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+        - name: sortBy
+          in: query
+          description: Sort field
+          required: false
+          schema:
+            type: string
+            enum: [submittedAt, rating, guestName, channel]
+            default: submittedAt
+            example: "submittedAt"
+        - name: order
+          in: query
+          description: Sort order
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+            example: "desc"
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+            example: 10
+      responses:
+        '200':
+          description: Reviews retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReviewsResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/reviews/statistics:
+    get:
+      tags:
+        - Reviews
+      summary: Get review statistics
+      description: Retrieve comprehensive statistics including overview, category breakdown, channel breakdown, and monthly trends
+      operationId: getReviewStatistics
+      parameters:
+        - name: listingId
+          in: query
+          description: Filter statistics by property listing ID
+          required: false
+          schema:
+            type: string
+            example: "PROP001"
+        - name: startDate
+          in: query
+          description: Filter statistics from this date (ISO 8601)
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: endDate
+          in: query
+          description: Filter statistics until this date (ISO 8601)
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatisticsSuccessResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/reviews/{id}:
+    get:
+      tags:
+        - Reviews
+      summary: Get review by ID
+      description: Retrieve a specific review by its ID
+      operationId: getReviewById
+      parameters:
+        - name: id
+          in: path
+          description: Review ID
+          required: true
+          schema:
+            type: string
+            example: "60f7b3b3b3b3b3b3b3b3b3b3"
+      responses:
+        '200':
+          description: Review retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewSuccessResponse'
+        '400':
+          description: Invalid review ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Review not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Reviews
+      summary: Update review
+      description: Update review properties such as status, website visibility, and response text
+      operationId: updateReview
+      parameters:
+        - name: id
+          in: path
+          description: Review ID
+          required: true
+          schema:
+            type: string
+            example: "60f7b3b3b3b3b3b3b3b3b3b3"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReviewRequest'
+            example:
+              showOnWebsite: true
+              responseText: "Thank you for your feedback!"
+              status: "published"
+      responses:
+        '200':
+          description: Review updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewSuccessResponse'
+        '400':
+          description: Invalid request data or review ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '404':
+          description: Review not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/reviews/{id}/helpful:
+    post:
+      tags:
+        - Reviews
+      summary: Mark review as helpful or not helpful
+      description: Update the helpful/not helpful count for a review
+      operationId: markReviewHelpful
+      parameters:
+        - name: id
+          in: path
+          description: Review ID
+          required: true
+          schema:
+            type: string
+            example: "60f7b3b3b3b3b3b3b3b3b3b3"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HelpfulRequest'
+            example:
+              helpful: true
+      responses:
+        '200':
+          description: Review helpful status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewSuccessResponse'
+        '400':
+          description: Invalid request data or review ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Review not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/properties:
+    get:
+      tags:
+        - Properties
+      summary: Get all properties
+      description: Retrieve all properties with optional filtering and sorting
+      operationId: getAllProperties
+      parameters:
+        - name: isActive
+          in: query
+          description: Filter by active status
+          required: false
+          schema:
+            type: boolean
+            example: true
+        - name: sortBy
+          in: query
+          description: Sort field
+          required: false
+          schema:
+            type: string
+            enum: [name, avgRating, totalReviews, createdAt]
+            default: avgRating
+            example: "avgRating"
+        - name: order
+          in: query
+          description: Sort order
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+            example: "desc"
+      responses:
+        '200':
+          description: Properties retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertiesSuccessResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/properties/{id}:
+    get:
+      tags:
+        - Properties
+      summary: Get property by ID with reviews
+      description: Retrieve a specific property by its ID along with associated reviews
+      operationId: getPropertyById
+      parameters:
+        - name: id
+          in: path
+          description: Property ID
+          required: true
+          schema:
+            type: string
+            example: "60f7b3b3b3b3b3b3b3b3b3b3"
+      responses:
+        '200':
+          description: Property retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertyWithReviewsSuccessResponse'
+        '400':
+          description: Invalid property ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Property not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Properties
+      summary: Update property
+      description: Update property information
+      operationId: updateProperty
+      parameters:
+        - name: id
+          in: path
+          description: Property ID
+          required: true
+          schema:
+            type: string
+            example: "60f7b3b3b3b3b3b3b3b3b3b3"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePropertyRequest'
+            example:
+              name: "Updated Modern Downtown Apartment"
+              description: "Newly renovated apartment in the heart of downtown"
+              isActive: true
+      responses:
+        '200':
+          description: Property updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertySuccessResponse'
+        '400':
+          description: Invalid request data or property ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '404':
+          description: Property not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/hostaway/reviews:
+    get:
+      tags:
+        - Hostaway
+      summary: Fetch reviews from Hostaway
+      description: Retrieve reviews from Hostaway API or mock data for testing
+      operationId: getHostawayReviews
+      parameters:
+        - name: useApi
+          in: query
+          description: Whether to use real Hostaway API or mock data
+          required: false
+          schema:
+            type: boolean
+            default: false
+            example: false
+      responses:
+        '200':
+          description: Hostaway reviews retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HostawayReviewsResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/hostaway/sync:
+    post:
+      tags:
+        - Hostaway
+      summary: Sync data from Hostaway
+      description: Synchronize properties and reviews from Hostaway API
+      operationId: syncHostawayData
+      responses:
+        '200':
+          description: Data synchronized successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResponse'
+        '500':
+          description: Synchronization failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/google/reviews:
+    get:
+      tags:
+        - Google
+      summary: Get Google Reviews for a place
+      description: Retrieve Google Reviews for a specific place using Google Places API
+      operationId: getGoogleReviews
+      parameters:
+        - name: placeId
+          in: query
+          description: Google Place ID
+          required: true
+          schema:
+            type: string
+            example: "ChIJN1t_tDeuEmsRUsoyG83frY4"
+      responses:
+        '200':
+          description: Google reviews retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoogleReviewsResponse'
+        '400':
+          description: Place ID is required or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to fetch Google reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/google/place-search:
+    get:
+      tags:
+        - Google
+      summary: Search for Google Places
+      description: Search for places using Google Places API to find Place IDs
+      operationId: searchGooglePlaces
+      parameters:
+        - name: query
+          in: query
+          description: Search query for places
+          required: true
+          schema:
+            type: string
+            example: "FlexLiving Downtown Apartment"
+      responses:
+        '200':
+          description: Places found successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GooglePlaceSearchSuccessResponse'
+        '400':
+          description: Search query is required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to search places
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    # Base Response Types
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success]
+          example: "success"
+        message:
+          type: string
+          example: "Operation completed successfully"
+        data:
+          type: object
+          description: Response data (varies by endpoint)
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+          example: "error"
+        message:
+          type: string
+          example: "An error occurred"
+        error:
+          type: string
+          description: Additional error details
+          example: "Validation failed"
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+          example: "error"
+        message:
+          type: string
+          example: "Validation failed"
+        error:
+          type: string
+          description: JSON string containing validation errors
+          example: '[{"field":"rating","message":"Rating must be between 1 and 10","value":15}]'
+
+    # Health Response
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, error]
+          example: "ok"
+        message:
+          type: string
+          example: "FlexLiving Reviews API"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        database:
+          $ref: '#/components/schemas/DatabaseHealth'
+        uptime:
+          type: number
+          description: Server uptime in seconds
+          example: 3600.5
+
+    DatabaseHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+          example: "healthy"
+        state:
+          type: string
+          example: "connected"
+        host:
+          type: string
+          example: "localhost"
+        database:
+          type: string
+          example: "flexliving-reviews"
+        error:
+          type: string
+          description: Error message if unhealthy
+          example: "Connection timeout"
+
+    # Review Types
+    ReviewCategory:
+      type: object
+      properties:
+        category:
+          type: string
+          enum: [cleanliness, accuracy, check_in, communication, location, value, respect_house_rules]
+          example: "cleanliness"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 10
+          example: 9
+
+    Review:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60f7b3b3b3b3b3b3b3b3b3b3"
+        externalId:
+          type: integer
+          example: 12345
+        type:
+          type: string
+          enum: [guest-to-host, host-to-guest]
+          example: "guest-to-host"
+        status:
+          type: string
+          enum: [published, pending, rejected]
+          example: "published"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 10
+          example: 9
+        publicReview:
+          type: string
+          example: "Great place to stay! Very clean and comfortable."
+        privateReview:
+          type: string
+          nullable: true
+          example: "Minor issue with WiFi speed"
+        reviewCategory:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewCategory'
+        submittedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        guestName:
+          type: string
+          example: "John Doe"
+        listingId:
+          type: string
+          example: "PROP001"
+        listingName:
+          type: string
+          example: "Modern Downtown Apartment"
+        channel:
+          type: string
+          enum: [Airbnb, Booking.com, Direct, Vrbo, Expedia, Google, Other]
+          example: "Airbnb"
+        reservationId:
+          type: string
+          example: "RES123456"
+        showOnWebsite:
+          type: boolean
+          example: true
+        responseText:
+          type: string
+          nullable: true
+          example: "Thank you for your feedback!"
+        respondedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-01-16T09:00:00.000Z"
+        helpful:
+          type: integer
+          minimum: 0
+          example: 5
+        notHelpful:
+          type: integer
+          minimum: 0
+          example: 1
+        source:
+          type: string
+          example: "hostaway"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+
+    # Request Types
+    UpdateReviewRequest:
+      type: object
+      properties:
+        showOnWebsite:
+          type: boolean
+          example: true
+        responseText:
+          type: string
+          maxLength: 1000
+          example: "Thank you for your feedback!"
+        status:
+          type: string
+          enum: [published, pending, rejected]
+          example: "published"
+
+    HelpfulRequest:
+      type: object
+      required:
+        - helpful
+      properties:
+        helpful:
+          type: boolean
+          description: True to mark as helpful, false to mark as not helpful
+          example: true
+
+    # Response Types
+    ReviewSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Review'
+
+    PaginationParams:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          example: 10
+        total:
+          type: integer
+          minimum: 0
+          example: 150
+        pages:
+          type: integer
+          minimum: 0
+          example: 15
+
+    PaginatedReviewsResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Review'
+            pagination:
+              $ref: '#/components/schemas/PaginationParams'
+
+    # Statistics Types
+    ReviewStatistics:
+      type: object
+      properties:
+        avgRating:
+          type: number
+          format: float
+          example: 8.5
+        totalReviews:
+          type: integer
+          example: 150
+        publishedReviews:
+          type: integer
+          example: 140
+        websiteReviews:
+          type: integer
+          example: 120
+
+    CategoryStatistics:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "cleanliness"
+        avgRating:
+          type: number
+          format: float
+          example: 9.2
+        count:
+          type: integer
+          example: 45
+
+    ChannelStatistics:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "Airbnb"
+        count:
+          type: integer
+          example: 75
+        avgRating:
+          type: number
+          format: float
+          example: 8.7
+
+    MonthlyTrend:
+      type: object
+      properties:
+        _id:
+          type: object
+          properties:
+            year:
+              type: integer
+              example: 2024
+            month:
+              type: integer
+              minimum: 1
+              maximum: 12
+              example: 1
+        count:
+          type: integer
+          example: 25
+        avgRating:
+          type: number
+          format: float
+          example: 8.3
+
+    StatisticsData:
+      type: object
+      properties:
+        overview:
+          $ref: '#/components/schemas/ReviewStatistics'
+        categoryBreakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryStatistics'
+        channelBreakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChannelStatistics'
+        monthlyTrend:
+          type: array
+          items:
+            $ref: '#/components/schemas/MonthlyTrend'
+
+    StatisticsSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StatisticsData'
+
+    # Property Types
+    Property:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60f7b3b3b3b3b3b3b3b3b3b3"
+        externalId:
+          type: string
+          example: "PROP001"
+        name:
+          type: string
+          example: "Modern Downtown Apartment"
+        address:
+          type: string
+          example: "123 Main St, Downtown, City 12345"
+        type:
+          type: string
+          enum: [Apartment, Studio, House, Penthouse, Villa, Other]
+          example: "Apartment"
+        bedrooms:
+          type: integer
+          minimum: 0
+          maximum: 20
+          example: 2
+        bathrooms:
+          type: integer
+          minimum: 0
+          maximum: 20
+          example: 2
+        maxGuests:
+          type: integer
+          minimum: 1
+          maximum: 50
+          example: 4
+        imageUrl:
+          type: string
+          nullable: true
+          example: "https://example.com/property-image.jpg"
+        description:
+          type: string
+          nullable: true
+          example: "Beautiful modern apartment in the heart of downtown"
+        amenities:
+          type: array
+          items:
+            type: string
+          example: ["WiFi", "Kitchen", "Parking", "Air Conditioning"]
+        avgRating:
+          type: number
+          format: float
+          nullable: true
+          example: 8.5
+        totalReviews:
+          type: integer
+          nullable: true
+          example: 25
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+
+    UpdatePropertyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: "Updated Modern Downtown Apartment"
+        address:
+          type: string
+          minLength: 1
+          maxLength: 500
+          example: "123 Updated Main St, Downtown, City 12345"
+        type:
+          type: string
+          enum: [Apartment, Studio, House, Penthouse, Villa, Other]
+          example: "Apartment"
+        bedrooms:
+          type: integer
+          minimum: 0
+          maximum: 20
+          example: 3
+        bathrooms:
+          type: integer
+          minimum: 0
+          maximum: 20
+          example: 2
+        maxGuests:
+          type: integer
+          minimum: 1
+          maximum: 50
+          example: 6
+        imageUrl:
+          type: string
+          maxLength: 1000
+          example: "https://example.com/updated-property-image.jpg"
+        description:
+          type: string
+          maxLength: 2000
+          example: "Newly renovated apartment with modern amenities"
+        amenities:
+          type: array
+          items:
+            type: string
+          example: ["WiFi", "Kitchen", "Parking", "Air Conditioning", "Balcony"]
+        isActive:
+          type: boolean
+          example: true
+
+    PropertyWithReviews:
+      type: object
+      properties:
+        property:
+          $ref: '#/components/schemas/Property'
+        reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+
+    PropertySuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Property'
+
+    PropertiesSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Property'
+
+    PropertyWithReviewsSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/PropertyWithReviews'
+
+    # Hostaway Types
+    HostawayReviewsResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success]
+          example: "success"
+        result:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+        count:
+          type: integer
+          example: 25
+        source:
+          type: string
+          enum: [hostaway, mock]
+          example: "mock"
+
+    SyncResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success, error]
+          example: "success"
+        message:
+          type: string
+          example: "Data synchronized successfully"
+        properties:
+          type: integer
+          example: 10
+        reviews:
+          type: integer
+          example: 150
+
+    # Google Types
+    GoogleReview:
+      type: object
+      properties:
+        externalId:
+          type: string
+          example: "google_ChIJN1t_tDeuEmsRUsoyG83frY4_0"
+        type:
+          type: string
+          enum: [guest-to-host]
+          example: "guest-to-host"
+        status:
+          type: string
+          enum: [published]
+          example: "published"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 10
+          example: 8
+        publicReview:
+          type: string
+          example: "Great location and very clean apartment."
+        submittedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        guestName:
+          type: string
+          example: "John Smith"
+        channel:
+          type: string
+          enum: [Google]
+          example: "Google"
+        source:
+          type: string
+          example: "google"
+        profilePhotoUrl:
+          type: string
+          nullable: true
+          example: "https://lh3.googleusercontent.com/a/default-user=s128-c0x00000000-cc-rp-mo"
+        relativeTimeDescription:
+          type: string
+          example: "2 months ago"
+
+    GooglePlaceData:
+      type: object
+      properties:
+        placeName:
+          type: string
+          example: "FlexLiving Property"
+        placeRating:
+          type: number
+          format: float
+          example: 4.5
+        totalRatings:
+          type: integer
+          example: 127
+        reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/GoogleReview'
+
+    GoogleReviewsResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success, error]
+          example: "success"
+        data:
+          $ref: '#/components/schemas/GooglePlaceData'
+        message:
+          type: string
+          example: "Google API key not configured. Returning mock data for demonstration."
+        note:
+          type: string
+          example: "To enable real Google Reviews, add your API key to .env file"
+
+    GooglePlaceSearchResult:
+      type: object
+      properties:
+        placeId:
+          type: string
+          example: "ChIJN1t_tDeuEmsRUsoyG83frY4"
+        name:
+          type: string
+          example: "FlexLiving Downtown Apartment"
+        address:
+          type: string
+          example: "123 Main St, Downtown, City 12345"
+        rating:
+          type: number
+          format: float
+          nullable: true
+          example: 4.5
+        totalRatings:
+          type: integer
+          nullable: true
+          example: 127
+
+    GooglePlaceSearchSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/GooglePlaceSearchResult'
