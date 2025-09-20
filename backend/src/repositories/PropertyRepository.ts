@@ -167,4 +167,9 @@ export class PropertyRepository extends BaseRepository<IProperty> {
 
     return filter;
   }
+
+  async delete(id: string): Promise<boolean> {
+    const result = await Property.findByIdAndDelete(id);
+    return !!result;
+  }
 }

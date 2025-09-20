@@ -93,6 +93,7 @@ class Server {
     this.app.use("/api/properties", propertyRoutes);
     this.app.use("/api/hostaway", hostawayRoutes);
     this.app.use("/api/google", googleRoutes);
+    this.app.use("/api/templates", require("./routes/templates").default);
 
     // Health check endpoint
     this.app.get("/api/health", async (req, res) => {

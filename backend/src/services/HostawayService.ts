@@ -41,21 +41,28 @@ export class HostawayService extends BaseService {
 
     if (useApi && this.isApiConfigured()) {
       try {
-        console.log("I got here");
-
         const apiReviews = await this.fetchReviewsFromApi();
-        console.log(666);
-        
+
         if (apiReviews.length > 0) {
           reviews = apiReviews;
-          source = "hostaway";
+          source = "hostaway_api";
+        } else {
+          // API returned empty results, fall back to mock data
+          reviews = mockData.reviews as HostawayReview[];
+          source = "mock_fallback";
         }
       } catch (error) {
+        console.warn(
+          "Hostaway API failed, falling back to mock data:",
+          error instanceof Error ? error.message : error
+        );
         // Fall back to mock data if API fails
         reviews = mockData.reviews as HostawayReview[];
+        source = "mock_fallback";
       }
     } else {
       reviews = mockData.reviews as HostawayReview[];
+      source = useApi ? "mock_api_not_configured" : "mock";
     }
 
     // Normalize and save reviews
@@ -150,23 +157,42 @@ export class HostawayService extends BaseService {
   }
 
   private normalizeReview(review: HostawayReview, source: string): any {
+    // Parse the submitted date properly
+    const submittedAt = review.submittedAt
+      ? new Date(review.submittedAt)
+      : new Date();
+
+    // Calculate rating if not provided
+    const rating =
+      review.rating || this.calculateAverageRating(review.reviewCategory || []);
+
+    // Normalize channel name to match our enum
+    const normalizedChannel = this.normalizeChannelName(
+      review.channel || "Hostaway"
+    );
+
     return {
       externalId: review.id,
       type: review.type || "guest-to-host",
       status: review.status || "published",
-      rating:
-        review.rating ||
-        this.calculateAverageRating(review.reviewCategory || []),
+      rating,
       publicReview: review.publicReview || "",
       privateReview: review.privateReview || "",
       reviewCategory: review.reviewCategory || [],
-      submittedAt: review.submittedAt,
+      submittedAt,
       guestName: review.guestName || "Anonymous",
       listingId: review.listingId || "",
       listingName: review.listingName || "",
-      channel: review.channel || "Hostaway",
+      channel: normalizedChannel,
       reservationId: review.reservationId || "",
+      showOnWebsite: false, // Default to false, managers can approve later
+      responseText: undefined,
+      respondedAt: undefined,
+      helpful: 0,
+      notHelpful: 0,
       source,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
   }
 
@@ -174,6 +200,23 @@ export class HostawayService extends BaseService {
     if (!categories || categories.length === 0) return 0;
     const ratings = categories.map((cat) => cat.rating);
     return Math.round(this.calculateAverage(ratings));
+  }
+
+  private normalizeChannelName(channel: string): string {
+    // Map various channel names to our standardized enum values
+    const channelMap: { [key: string]: string } = {
+      hostaway: "Other",
+      airbnb: "Airbnb",
+      "booking.com": "Booking.com",
+      booking: "Booking.com",
+      vrbo: "Vrbo",
+      expedia: "Expedia",
+      google: "Google",
+      direct: "Direct",
+    };
+
+    const normalizedKey = channel.toLowerCase().trim();
+    return channelMap[normalizedKey] || "Other";
   }
 
   private async updateAllPropertyStatistics(): Promise<void> {
@@ -201,7 +244,6 @@ export class HostawayService extends BaseService {
   }
 
   private isApiConfigured(): boolean {
-    console.log(this.apiUrl, this.apiKey, this.accountId);
     return !!(this.apiUrl && this.apiKey && this.accountId);
   }
 

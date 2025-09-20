@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Review } from '../../services/api';
-import { Star, Eye, EyeOff, MessageCircle, ThumbsUp, Calendar, User, Home } from 'lucide-react';
+import { Star, Eye, EyeOff, MessageCircle, Calendar, User, Home, ArrowUpDown, ArrowUp, ArrowDown, CheckSquare, Square } from 'lucide-react';
 import './ReviewsList.css';
 
 interface ReviewsListProps {
@@ -9,9 +9,99 @@ interface ReviewsListProps {
   loading: boolean;
 }
 
+type SortField = 'submittedAt' | 'rating' | 'guestName' | 'channel' | 'status';
+type SortOrder = 'asc' | 'desc';
+
 const ReviewsList: React.FC<ReviewsListProps> = ({ reviews, onUpdateReview, loading }) => {
   const [expandedReview, setExpandedReview] = useState<string | null>(null);
   const [responseText, setResponseText] = useState<{ [key: string]: string }>({});
+  const [sortField, setSortField] = useState<SortField>('submittedAt');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [selectedReviews, setSelectedReviews] = useState<Set<string>>(new Set());
+  const [showBulkActions, setShowBulkActions] = useState(false);
+
+  // Sort reviews based on current sort field and order
+  const sortedReviews = useMemo(() => {
+    return [...reviews].sort((a, b) => {
+      let aValue: any = a[sortField];
+      let bValue: any = b[sortField];
+
+      // Handle date sorting
+      if (sortField === 'submittedAt') {
+        aValue = new Date(aValue).getTime();
+        bValue = new Date(bValue).getTime();
+      }
+
+      // Handle string sorting (case insensitive)
+      if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [reviews, sortField, sortOrder]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) return <ArrowUpDown size={14} />;
+    return sortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />;
+  };
+
+  const handleSelectReview = (reviewId: string) => {
+    const newSelected = new Set(selectedReviews);
+    if (newSelected.has(reviewId)) {
+      newSelected.delete(reviewId);
+    } else {
+      newSelected.add(reviewId);
+    }
+    setSelectedReviews(newSelected);
+    setShowBulkActions(newSelected.size > 0);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedReviews.size === sortedReviews.length) {
+      setSelectedReviews(new Set());
+      setShowBulkActions(false);
+    } else {
+      setSelectedReviews(new Set(sortedReviews.map(r => r._id)));
+      setShowBulkActions(true);
+    }
+  };
+
+  const handleBulkAction = (action: 'show' | 'hide' | 'publish' | 'reject') => {
+    selectedReviews.forEach(reviewId => {
+      const review = sortedReviews.find(r => r._id === reviewId);
+      if (review) {
+        switch (action) {
+          case 'show':
+            onUpdateReview(reviewId, { showOnWebsite: true });
+            break;
+          case 'hide':
+            onUpdateReview(reviewId, { showOnWebsite: false });
+            break;
+          case 'publish':
+            onUpdateReview(reviewId, { status: 'published' });
+            break;
+          case 'reject':
+            onUpdateReview(reviewId, { status: 'rejected' });
+            break;
+        }
+      }
+    });
+    setSelectedReviews(new Set());
+    setShowBulkActions(false);
+  };
 
   const getRatingColor = (rating: number) => {
     if (rating >= 9) return 'rating-excellent';
@@ -72,10 +162,104 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ reviews, onUpdateReview, load
 
   return (
     <div className="reviews-list">
-      {reviews.map((review) => (
+      <div className="reviews-header">
+        <div className="reviews-count">
+          <button
+            className="select-all-btn"
+            onClick={handleSelectAll}
+            title={selectedReviews.size === sortedReviews.length ? 'Deselect all' : 'Select all'}
+          >
+            {selectedReviews.size === sortedReviews.length ? <CheckSquare size={16} /> : <Square size={16} />}
+          </button>
+          {sortedReviews.length} review{sortedReviews.length !== 1 ? 's' : ''}
+          {selectedReviews.size > 0 && (
+            <span className="selected-count">({selectedReviews.size} selected)</span>
+          )}
+        </div>
+        <div className="sort-controls">
+          <span>Sort by:</span>
+          <button
+            className={`sort-btn ${sortField === 'submittedAt' ? 'active' : ''}`}
+            onClick={() => handleSort('submittedAt')}
+          >
+            Date {getSortIcon('submittedAt')}
+          </button>
+          <button
+            className={`sort-btn ${sortField === 'rating' ? 'active' : ''}`}
+            onClick={() => handleSort('rating')}
+          >
+            Rating {getSortIcon('rating')}
+          </button>
+          <button
+            className={`sort-btn ${sortField === 'guestName' ? 'active' : ''}`}
+            onClick={() => handleSort('guestName')}
+          >
+            Guest {getSortIcon('guestName')}
+          </button>
+          <button
+            className={`sort-btn ${sortField === 'channel' ? 'active' : ''}`}
+            onClick={() => handleSort('channel')}
+          >
+            Channel {getSortIcon('channel')}
+          </button>
+          <button
+            className={`sort-btn ${sortField === 'status' ? 'active' : ''}`}
+            onClick={() => handleSort('status')}
+          >
+            Status {getSortIcon('status')}
+          </button>
+        </div>
+      </div>
+
+      {showBulkActions && (
+        <div className="bulk-actions">
+          <div className="bulk-actions-content">
+            <span className="bulk-actions-label">
+              {selectedReviews.size} review{selectedReviews.size !== 1 ? 's' : ''} selected
+            </span>
+            <div className="bulk-actions-buttons">
+              <button
+                className="bulk-btn bulk-btn-primary"
+                onClick={() => handleBulkAction('show')}
+              >
+                <Eye size={14} />
+                Show on Website
+              </button>
+              <button
+                className="bulk-btn bulk-btn-secondary"
+                onClick={() => handleBulkAction('hide')}
+              >
+                <EyeOff size={14} />
+                Hide from Website
+              </button>
+              <button
+                className="bulk-btn bulk-btn-success"
+                onClick={() => handleBulkAction('publish')}
+              >
+                Publish
+              </button>
+              <button
+                className="bulk-btn bulk-btn-danger"
+                onClick={() => handleBulkAction('reject')}
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {sortedReviews.map((review) => (
         <div key={review._id} className="review-card">
           <div className="review-header">
             <div className="review-meta">
+              <button
+                className="review-checkbox"
+                onClick={() => handleSelectReview(review._id)}
+                title={selectedReviews.has(review._id) ? 'Deselect review' : 'Select review'}
+              >
+                {selectedReviews.has(review._id) ? <CheckSquare size={16} /> : <Square size={16} />}
+              </button>
               <div className="review-guest">
                 <User size={16} />
                 <span className="guest-name">{review.guestName}</span>

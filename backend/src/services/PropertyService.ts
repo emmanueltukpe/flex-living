@@ -271,4 +271,37 @@ export class PropertyService extends BaseService {
       updatedAt: property.updatedAt,
     };
   }
+
+  async create(propertyData: any): Promise<Property> {
+    const sanitizedData = this.sanitizePropertyData(propertyData);
+    const property = await this.propertyRepository.create(sanitizedData);
+    return this.transformPropertyDocument(property);
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const result = await this.propertyRepository.delete(id);
+    return result;
+  }
+
+  private sanitizePropertyData(data: any): any {
+    return {
+      externalId: data.externalId,
+      name: this.sanitizeString(data.name),
+      address: this.sanitizeString(data.address),
+      type: data.type,
+      bedrooms: Number(data.bedrooms),
+      bathrooms: Number(data.bathrooms),
+      maxGuests: Number(data.maxGuests),
+      imageUrl: data.imageUrl,
+      description: data.description
+        ? this.sanitizeString(data.description)
+        : undefined,
+      amenities: Array.isArray(data.amenities) ? data.amenities : [],
+      isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
+    };
+  }
+
+  protected sanitizeString(str: string): string {
+    return str.trim().replace(/[<>]/g, "");
+  }
 }

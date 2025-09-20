@@ -1,4 +1,4 @@
-import { FilterQuery } from "mongoose";
+import { FilterQuery, Types } from "mongoose";
 import Review from "../models/Review";
 import { BaseRepository } from "./BaseRepository";
 import {
@@ -223,5 +223,21 @@ export class ReviewRepository extends BaseRepository<IReview> {
     }
 
     return matchStage;
+  }
+
+  async bulkUpdate(reviewIds: string[], updates: any): Promise<any> {
+    const objectIds = reviewIds.map((id) => new Types.ObjectId(id));
+
+    const result = await Review.updateMany(
+      { _id: { $in: objectIds } },
+      { $set: updates }
+    );
+
+    return result;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const result = await Review.findByIdAndDelete(id);
+    return !!result;
   }
 }
