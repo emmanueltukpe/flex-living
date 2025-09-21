@@ -9,13 +9,15 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package*.json ./
-RUN npm ci --only=production
+# Skip postinstall script for production dependencies
+RUN npm ci --only=production --ignore-scripts
 
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# Skip postinstall script during dependency installation
+RUN npm ci --ignore-scripts
 
 COPY . .
 # Build the TypeScript application
