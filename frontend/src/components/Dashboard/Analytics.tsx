@@ -1,5 +1,14 @@
 import React from 'react';
 import {
+  Box,
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  Stack,
+  Avatar
+} from '@mui/material';
+import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
@@ -13,6 +22,7 @@ import {
 } from 'chart.js';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import { ReviewStatistics, Review } from '../../services/api';
+import { BarChart3 } from 'lucide-react';
 import './Analytics.css';
 
 ChartJS.register(
@@ -35,7 +45,21 @@ interface AnalyticsProps {
 
 const Analytics: React.FC<AnalyticsProps> = ({ statistics, reviews, selectedProperty }) => {
   if (!statistics) {
-    return <div className="analytics-empty">No data available for analysis</div>;
+    return (
+      <Card sx={{ p: 4, textAlign: 'center' }}>
+        <Stack spacing={2} alignItems="center">
+          <Avatar sx={{ width: 64, height: 64, bgcolor: 'primary.light' }}>
+            <BarChart3 size={32} />
+          </Avatar>
+          <Typography variant="h6" color="text.secondary">
+            No data available for analysis
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Analytics will appear here once review data is available.
+          </Typography>
+        </Stack>
+      </Card>
+    );
   }
 
   // Prepare monthly trend data
@@ -88,109 +112,172 @@ const Analytics: React.FC<AnalyticsProps> = ({ statistics, reviews, selectedProp
   };
 
   return (
-    <div className="analytics">
-      <div className="analytics-grid">
-        <div className="analytics-card">
-          <h3>Review Trends</h3>
-          <Line 
-            data={trendChartData}
-            options={{
-              responsive: true,
-              interaction: {
-                mode: 'index',
-                intersect: false,
-              },
-              scales: {
-                y: {
-                  type: 'linear',
-                  display: true,
-                  position: 'left',
-                },
-                y1: {
-                  type: 'linear',
-                  display: true,
-                  position: 'right',
-                  max: 10,
-                  grid: {
-                    drawOnChartArea: false,
-                  },
-                },
-              },
-            }}
-          />
-        </div>
+    <Box>
+      <Grid container spacing={3}>
+        {/* Review Trends Chart */}
+        <Grid size={{ xs: 12, lg: 8 }}>
+          <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 3 }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+                Review Trends
+              </Typography>
+              <Box sx={{ height: 300 }}>
+                <Line
+                  data={trendChartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                      mode: 'index',
+                      intersect: false,
+                    },
+                    scales: {
+                      y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                      },
+                      y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        max: 10,
+                        grid: {
+                          drawOnChartArea: false,
+                        },
+                      },
+                    },
+                  }}
+                />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
 
-        <div className="analytics-card">
-          <h3>Category Performance</h3>
-          <Bar 
-            data={categoryChartData}
-            options={{
-              responsive: true,
-              scales: {
-                y: {
-                  beginAtZero: true,
-                  max: 10
-                }
-              }
-            }}
-          />
-        </div>
+        {/* Key Metrics */}
+        <Grid size={{ xs: 12, lg: 4 }}>
+          <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 3, height: '100%' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+                Key Metrics
+              </Typography>
+              <Stack spacing={3}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                    Average Rating
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                    {statistics.overview.avgRating.toFixed(1)}/10
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                    Response Rate
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                    {reviews.filter(r => r.responseText).length}/{reviews.length}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                    Website Display Rate
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                    {((statistics.overview.websiteReviews / statistics.overview.totalReviews) * 100).toFixed(0)}%
+                  </Typography>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
 
-        <div className="analytics-card small">
-          <h3>Channel Distribution</h3>
-          <Doughnut 
-            data={channelChartData}
-            options={{
-              responsive: true,
-              maintainAspectRatio: true
-            }}
-          />
-        </div>
+        {/* Category Performance */}
+        <Grid size={{ xs: 12, md: 8 }}>
+          <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 3 }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+                Category Performance
+              </Typography>
+              <Box sx={{ height: 300 }}>
+                <Bar
+                  data={categoryChartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        max: 10
+                      }
+                    }
+                  }}
+                />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
 
-        <div className="analytics-card small">
-          <h3>Key Metrics</h3>
-          <div className="metrics-list">
-            <div className="metric">
-              <span className="metric-label">Average Rating</span>
-              <span className="metric-value">{statistics.overview.avgRating.toFixed(1)}/10</span>
-            </div>
-            <div className="metric">
-              <span className="metric-label">Response Rate</span>
-              <span className="metric-value">
-                {reviews.filter(r => r.responseText).length}/{reviews.length}
-              </span>
-            </div>
-            <div className="metric">
-              <span className="metric-label">Website Display Rate</span>
-              <span className="metric-value">
-                {((statistics.overview.websiteReviews / statistics.overview.totalReviews) * 100).toFixed(0)}%
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+        {/* Channel Distribution */}
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 3, height: '100%' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+                Channel Distribution
+              </Typography>
+              <Box sx={{ height: 250, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Doughnut
+                  data={channelChartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false
+                  }}
+                />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
 
-      <div className="insights-section">
-        <h3>Insights & Recommendations</h3>
-        <div className="insights-grid">
-          {statistics.categoryBreakdown
-            .filter(c => c.avgRating < 7)
-            .map((category, idx) => (
-              <div key={idx} className="insight-card warning">
-                <p>⚠️ <strong>{category._id.replace(/_/g, ' ')}</strong> needs improvement (avg: {category.avgRating.toFixed(1)}/10)</p>
-              </div>
-            ))}
-          {statistics.channelBreakdown
-            .sort((a, b) => b.avgRating - a.avgRating)
-            .slice(0, 1)
-            .map((channel, idx) => (
-              <div key={idx} className="insight-card success">
-                <p>✅ Best performing channel: <strong>{channel._id}</strong> ({channel.avgRating.toFixed(1)}/10)</p>
-              </div>
-            ))}
-        </div>
-      </div>
-    </div>
+        {/* Insights & Recommendations */}
+        <Grid size={{ xs: 12 }}>
+          <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 3 }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+                Insights & Recommendations
+              </Typography>
+              <Grid container spacing={2}>
+                {statistics.categoryBreakdown
+                  .filter(c => c.avgRating < 7)
+                  .map((category, idx) => (
+                    <Grid size={{ xs: 12, md: 6 }} key={idx}>
+                      <Card elevation={0} sx={{ bgcolor: 'warning.light', border: 1, borderColor: 'warning.main' }}>
+                        <CardContent sx={{ p: 2 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            ⚠️ <strong>{category._id.replace(/_/g, ' ')}</strong> needs improvement (avg: {category.avgRating.toFixed(1)}/10)
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                {statistics.channelBreakdown
+                  .sort((a, b) => b.avgRating - a.avgRating)
+                  .slice(0, 1)
+                  .map((channel, idx) => (
+                    <Grid size={{ xs: 12, md: 6 }} key={idx}>
+                      <Card elevation={0} sx={{ bgcolor: 'success.light', border: 1, borderColor: 'success.main' }}>
+                        <CardContent sx={{ p: 2 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            ✅ Best performing channel: <strong>{channel._id}</strong> ({channel.avgRating.toFixed(1)}/10)
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
   );
 };
 

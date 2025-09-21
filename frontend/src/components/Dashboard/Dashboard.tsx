@@ -1,12 +1,34 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Container,
+  Typography,
+  Button,
+  Tabs,
+  Tab,
+  Paper,
+  Stack,
+  CircularProgress
+} from '@mui/material';
+import {
+  RefreshCw,
+  Download,
+  Upload,
+  BarChart3,
+  Building2,
+  MessageSquare,
+  MapPin,
+  ToggleLeft,
+  ToggleRight
+} from 'lucide-react';
 import { reviewsApi, propertiesApi, hostawayApi, Review, Property, ReviewStatistics } from '../../services/api';
 import ReviewsList from './ReviewsList';
 import PropertyStats from './PropertyStats';
 import PropertyList from './PropertyList';
 import ReviewFilters from './ReviewFilters';
 import Analytics from './Analytics';
+import GoogleReviewsList from '../GoogleReviews/GoogleReviewsList';
 import './Dashboard.css';
-import { RefreshCw, Download, Upload } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -23,6 +45,8 @@ const Dashboard: React.FC = () => {
     endDate: ''
   });
   const [activeTab, setActiveTab] = useState<'reviews' | 'properties' | 'analytics'>('reviews');
+  const [reviewSource, setReviewSource] = useState<'hostaway' | 'google'>('hostaway');
+  const [selectedGooglePlace, setSelectedGooglePlace] = useState<string>('');
 
   useEffect(() => {
     loadData();
@@ -103,97 +127,243 @@ const Dashboard: React.FC = () => {
 
   if (loading && reviews.length === 0) {
     return (
-      <div className="dashboard-loading">
-        <div className="spinner"></div>
-        <p>Loading dashboard...</p>
-      </div>
+      <Box
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="center"
+        minHeight="100vh"
+        gap={2}
+      >
+        <CircularProgress size={40} />
+        <Typography variant="body2" color="text.secondary">
+          Loading dashboard...
+        </Typography>
+      </Box>
     );
   }
 
   return (
-    <div className="dashboard">
-      <div className="dashboard-header">
-        <div className="header-content">
-          <h1>FlexLiving Reviews Dashboard</h1>
-          <p className="subtitle">Manage and analyze guest reviews across all properties</p>
-        </div>
-        <div className="header-actions">
-          <button className="btn btn-secondary" onClick={handleSync}>
-            <RefreshCw size={16} />
-            Sync Data
-          </button>
-          <button className="btn btn-secondary" onClick={handleExport}>
-            <Download size={16} />
-            Export CSV
-          </button>
-          <button className="btn btn-primary">
-            <Upload size={16} />
-            Import Reviews
-          </button>
-        </div>
-      </div>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      {/* Enhanced Header */}
+      <Paper
+        elevation={0}
+        sx={{
+          borderBottom: 1,
+          borderColor: 'divider',
+          bgcolor: 'background.paper'
+        }}
+      >
+        <Container maxWidth="xl" sx={{ py: 4 }}>
+          <Stack spacing={3}>
+            <Box>
+              <Typography
+                variant="h1"
+                sx={{
+                  fontSize: { xs: '2rem', md: '2.5rem' },
+                  fontWeight: 700,
+                  color: 'primary.main',
+                  mb: 1
+                }}
+              >
+                FlexLiving Reviews Dashboard
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Manage and analyze guest reviews across all properties
+              </Typography>
+            </Box>
 
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              sx={{ pt: 1 }}
+            >
+              <Button
+                variant="outlined"
+                startIcon={<RefreshCw size={18} />}
+                onClick={handleSync}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 500
+                }}
+              >
+                Sync Data
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<Download size={18} />}
+                onClick={handleExport}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 500
+                }}
+              >
+                Export CSV
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<Upload size={18} />}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  boxShadow: 'none',
+                  '&:hover': {
+                    boxShadow: 2
+                  }
+                }}
+              >
+                Import Reviews
+              </Button>
+            </Stack>
+          </Stack>
+        </Container>
+      </Paper>
+
+      {/* Property Stats */}
       <PropertyStats properties={properties} statistics={statistics} />
 
-      <div className="dashboard-content">
-        <div className="content-header">
-          <div className="tabs">
-            <button
-              className={`tab ${activeTab === 'reviews' ? 'active' : ''}`}
-              onClick={() => setActiveTab('reviews')}
+      {/* Main Content */}
+      <Container maxWidth="xl" sx={{ py: 3 }}>
+        <Paper elevation={0} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+          {/* Enhanced Tabs */}
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs
+              value={activeTab}
+              onChange={(_, newValue) => setActiveTab(newValue)}
+              sx={{ px: 3, pt: 2 }}
             >
-              Reviews Management
-            </button>
-            <button
-              className={`tab ${activeTab === 'properties' ? 'active' : ''}`}
-              onClick={() => setActiveTab('properties')}
-            >
-              Properties
-            </button>
-            <button
-              className={`tab ${activeTab === 'analytics' ? 'active' : ''}`}
-              onClick={() => setActiveTab('analytics')}
-            >
-              Analytics & Insights
-            </button>
-          </div>
-        </div>
+              <Tab
+                value="reviews"
+                label={
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <MessageSquare size={18} />
+                    <span>Reviews Management</span>
+                  </Stack>
+                }
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  minHeight: 48
+                }}
+              />
+              <Tab
+                value="properties"
+                label={
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Building2 size={18} />
+                    <span>Properties</span>
+                  </Stack>
+                }
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  minHeight: 48
+                }}
+              />
+              <Tab
+                value="analytics"
+                label={
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <BarChart3 size={18} />
+                    <span>Analytics & Insights</span>
+                  </Stack>
+                }
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  minHeight: 48
+                }}
+              />
+            </Tabs>
+          </Box>
 
-        {activeTab === 'reviews' && (
-          <div className="reviews-section">
-            <ReviewFilters
-              filters={filters}
-              onFilterChange={setFilters}
-              properties={properties}
-              selectedProperty={selectedProperty}
-              onPropertyChange={setSelectedProperty}
-            />
-            <ReviewsList
-              reviews={reviews}
-              onUpdateReview={handleReviewUpdate}
-              loading={loading}
-            />
-          </div>
-        )}
+          {/* Tab Content */}
+          <Box sx={{ p: 3 }}>
+            {activeTab === 'reviews' && (
+              <Box>
+                {/* Review Source Toggle */}
+                <Paper elevation={0} sx={{ mb: 3, p: 2, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      Review Source
+                    </Typography>
+                    <Stack direction="row" spacing={1}>
+                      <Button
+                        variant={reviewSource === 'hostaway' ? 'contained' : 'outlined'}
+                        onClick={() => setReviewSource('hostaway')}
+                        startIcon={<Building2 size={16} />}
+                        sx={{
+                          textTransform: 'none',
+                          borderRadius: 2
+                        }}
+                      >
+                        Hostaway Reviews
+                      </Button>
+                      <Button
+                        variant={reviewSource === 'google' ? 'contained' : 'outlined'}
+                        onClick={() => setReviewSource('google')}
+                        startIcon={<MapPin size={16} />}
+                        sx={{
+                          textTransform: 'none',
+                          borderRadius: 2
+                        }}
+                      >
+                        Google Places
+                      </Button>
+                    </Stack>
+                  </Stack>
+                </Paper>
 
-        {activeTab === 'properties' && (
-          <div className="properties-section">
-            <PropertyList
-              properties={properties}
-              loading={loading}
-            />
-          </div>
-        )}
+                {/* Conditional Content Based on Review Source */}
+                {reviewSource === 'hostaway' ? (
+                  <Box>
+                    <ReviewFilters
+                      filters={filters}
+                      onFilterChange={setFilters}
+                      properties={properties}
+                      selectedProperty={selectedProperty}
+                      onPropertyChange={setSelectedProperty}
+                    />
+                    <ReviewsList
+                      reviews={reviews}
+                      onUpdateReview={handleReviewUpdate}
+                      loading={loading}
+                    />
+                  </Box>
+                ) : (
+                  <GoogleReviewsList
+                    selectedPlaceId={selectedGooglePlace}
+                    onPlaceSelect={setSelectedGooglePlace}
+                  />
+                )}
+              </Box>
+            )}
 
-        {activeTab === 'analytics' && (
-          <Analytics
-            statistics={statistics}
-            reviews={reviews}
-            selectedProperty={selectedProperty}
-          />
-        )}
-      </div>
-    </div>
+            {activeTab === 'properties' && (
+              <Box>
+                <PropertyList
+                  properties={properties}
+                  loading={loading}
+                />
+              </Box>
+            )}
+
+            {activeTab === 'analytics' && (
+              <Box>
+                <Analytics
+                  statistics={statistics}
+                  reviews={reviews}
+                  selectedProperty={selectedProperty}
+                />
+              </Box>
+            )}
+          </Box>
+        </Paper>
+      </Container>
+    </Box>
   );
 };
 

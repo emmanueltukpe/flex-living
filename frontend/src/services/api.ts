@@ -79,6 +79,76 @@ export interface ReviewStatistics {
   }>;
 }
 
+// Google Places Types
+export interface GooglePlace {
+  placeId: string;
+  name:
+    | string
+    | {
+        text: string;
+        languageCode: string;
+      };
+  address: string;
+  rating?: number;
+  totalRatings?: number;
+  reviews?: GoogleReview[];
+}
+
+export interface GoogleReview {
+  name: string;
+  relativePublishTimeDescription: string;
+  rating: number;
+  text: {
+    text: string;
+    languageCode: string;
+  };
+  originalText: {
+    text: string;
+    languageCode: string;
+  };
+  authorAttribution: {
+    displayName: string;
+    uri: string;
+    photoUri: string;
+  };
+  publishTime: string;
+  flagContentUri: string;
+  googleMapsUri: string;
+}
+
+export interface GooglePlacesResponse {
+  status: "success" | "error";
+  message?: string;
+  data?: {
+    placeId?: string;
+    name:
+      | string
+      | {
+          text: string;
+          languageCode: string;
+        };
+    address: string;
+    rating: number;
+    totalRatings: number;
+    reviews: Review[];
+  };
+  documentation?: any;
+}
+
+export interface GooglePlaceSearchResult {
+  placeId: string;
+  name:
+    | string
+    | {
+        text: string;
+        languageCode: string;
+      };
+  address: string;
+  rating?: number;
+  totalRatings?: number;
+  reviews?: GoogleReview[];
+}
+
 // API Methods
 
 // Reviews
@@ -142,20 +212,67 @@ export const hostawayApi = {
   },
 };
 
-// Google Reviews
+// Google Places API
 export const googleApi = {
-  getReviews: async (placeId?: string) => {
-    const response = await api.get("/google/reviews", {
-      params: { placeId },
-    });
-    return response.data;
+  getReviews: async (placeId?: string): Promise<GooglePlacesResponse> => {
+    try {
+      const response = await api.get("/google/reviews", {
+        params: { placeId },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching Google reviews:", error);
+      return {
+        status: "error",
+        message: "Failed to fetch Google reviews",
+      };
+    }
   },
 
+  searchPlaces: async (
+    query: string
+  ): Promise<{
+    status: "success" | "error";
+    data?: GooglePlaceSearchResult[];
+    message?: string;
+  }> => {
+    try {
+      const response = await api.get("/google/place-search", {
+        params: { query },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error searching Google places:", error);
+      return {
+        status: "error",
+        message: "Failed to search Google places",
+      };
+    }
+  },
+
+  getApiStatus: async (): Promise<{
+    configured: boolean;
+    hasKey: boolean;
+    documentation: any;
+    testEndpoints: string[];
+  }> => {
+    try {
+      const response = await api.get("/google/status");
+      return response.data;
+    } catch (error) {
+      console.error("Error getting Google API status:", error);
+      return {
+        configured: false,
+        hasKey: false,
+        documentation: {},
+        testEndpoints: [],
+      };
+    }
+  },
+
+  // Legacy method for backward compatibility
   searchPlace: async (query: string) => {
-    const response = await api.get("/google/place-search", {
-      params: { query },
-    });
-    return response.data;
+    return googleApi.searchPlaces(query);
   },
 };
 

@@ -1,0 +1,204 @@
+/* Google Reviews specific styles */
+.google-reviews {
+  min-height: 100vh;
+  background-color: var(--color-bg-primary);
+}
+
+.google-place-search {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-bg-secondary);
+}
+
+.google-place-info {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-bg-secondary);
+}
+
+.google-review-card {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-bg-secondary);
+  transition: box-shadow var(--transition-normal);
+}
+
+.google-review-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.google-review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-bg-secondary);
+}
+
+.google-review-author {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.google-review-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+}
+
+.google-review-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.google-review-name {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.google-review-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.google-review-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.google-review-text {
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  margin-top: 1rem;
+}
+
+.google-place-search-results {
+  margin-top: 1rem;
+}
+
+.google-place-result {
+  background: var(--color-white);
+  border: 1px solid var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.google-place-result:hover {
+  border-color: var(--color-accent);
+  background: var(--color-bg-primary);
+}
+
+.google-place-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.google-place-result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.google-place-result-name {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.google-place-result-address {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.google-place-result-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.google-reviews-empty {
+  text-align: center;
+  padding: 3rem;
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-bg-secondary);
+}
+
+.google-reviews-loading {
+  text-align: center;
+  padding: 3rem;
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-bg-secondary);
+}
+
+.google-api-status {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.google-api-status.configured {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.google-api-status.not-configured {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+@media (max-width: 768px) {
+  .google-review-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .google-place-result-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .google-place-search {
+    padding: 1rem;
+  }
+  
+  .google-place-info {
+    padding: 1rem;
+  }
+  
+  .google-review-card {
+    padding: 1rem;
+  }
+}

@@ -1,6 +1,42 @@
 import React, { useState, useMemo } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Chip,
+  IconButton,
+  Button,
+  Stack,
+  Divider,
+  Checkbox,
+  Rating,
+  LinearProgress,
+  Collapse,
+  TextField,
+  Alert,
+  Pagination,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Tooltip,
+  Avatar,
+  Paper
+} from '@mui/material';
+import {
+  Eye,
+  EyeOff,
+  MessageCircle,
+  Calendar,
+  User,
+  Home,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Reply
+} from 'lucide-react';
 import { Review } from '../../services/api';
-import { Star, Eye, EyeOff, MessageCircle, Calendar, User, Home, ArrowUpDown, ArrowUp, ArrowDown, CheckSquare, Square, ChevronLeft, ChevronRight } from 'lucide-react';
 import './ReviewsList.css';
 
 interface ReviewsListProps {
@@ -119,10 +155,19 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ reviews, onUpdateReview, load
   };
 
   const getRatingColor = (rating: number) => {
-    if (rating >= 9) return 'rating-excellent';
-    if (rating >= 7) return 'rating-good';
-    if (rating >= 5) return 'rating-average';
-    return 'rating-poor';
+    if (rating >= 9) return 'success';
+    if (rating >= 7) return 'primary';
+    if (rating >= 5) return 'warning';
+    return 'error';
+  };
+
+  const getStatusColor = (status: string): 'success' | 'warning' | 'error' | 'default' => {
+    switch (status) {
+      case 'published': return 'success';
+      case 'pending': return 'warning';
+      case 'rejected': return 'error';
+      default: return 'default';
+    }
   };
 
   const getStatusBadgeClass = (status: string) => {
@@ -160,306 +205,480 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ reviews, onUpdateReview, load
 
   if (loading) {
     return (
-      <div className="reviews-loading">
-        <div className="spinner"></div>
-        <p>Loading reviews...</p>
-      </div>
+      <Card sx={{ p: 4, textAlign: 'center' }}>
+        <Stack spacing={2} alignItems="center">
+          <LinearProgress sx={{ width: '100%', maxWidth: 200 }} />
+          <Typography variant="body2" color="text.secondary">
+            Loading reviews...
+          </Typography>
+        </Stack>
+      </Card>
     );
   }
 
   if (reviews.length === 0) {
     return (
-      <div className="reviews-empty">
-        <p>No reviews found matching your criteria.</p>
-      </div>
+      <Card sx={{ p: 4, textAlign: 'center' }}>
+        <Stack spacing={2} alignItems="center">
+          <MessageCircle size={48} color="#93968B" />
+          <Typography variant="h6" color="text.secondary">
+            No reviews found
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            No reviews match your current criteria. Try adjusting your filters.
+          </Typography>
+        </Stack>
+      </Card>
     );
   }
 
   return (
-    <div className="reviews-list">
-      <div className="reviews-header">
-        <div className="reviews-count">
-          <button
-            className="select-all-btn"
-            onClick={handleSelectAll}
-            title={selectedReviews.size === paginatedReviews.length ? 'Deselect all on page' : 'Select all on page'}
-          >
-            {selectedReviews.size === paginatedReviews.length ? <CheckSquare size={16} /> : <Square size={16} />}
-          </button>
-          {sortedReviews.length} review{sortedReviews.length !== 1 ? 's' : ''}
-          {selectedReviews.size > 0 && (
-            <span className="selected-count">({selectedReviews.size} selected)</span>
-          )}
-          <div className="pagination-info">
-            Showing {startIndex + 1}-{Math.min(endIndex, sortedReviews.length)} of {sortedReviews.length}
-          </div>
-        </div>
-        <div className="sort-controls">
-          <span>Sort by:</span>
-          <button
-            className={`sort-btn ${sortField === 'submittedAt' ? 'active' : ''}`}
-            onClick={() => handleSort('submittedAt')}
-          >
-            Date {getSortIcon('submittedAt')}
-          </button>
-          <button
-            className={`sort-btn ${sortField === 'rating' ? 'active' : ''}`}
-            onClick={() => handleSort('rating')}
-          >
-            Rating {getSortIcon('rating')}
-          </button>
-          <button
-            className={`sort-btn ${sortField === 'guestName' ? 'active' : ''}`}
-            onClick={() => handleSort('guestName')}
-          >
-            Guest {getSortIcon('guestName')}
-          </button>
-          <button
-            className={`sort-btn ${sortField === 'channel' ? 'active' : ''}`}
-            onClick={() => handleSort('channel')}
-          >
-            Channel {getSortIcon('channel')}
-          </button>
-          <button
-            className={`sort-btn ${sortField === 'status' ? 'active' : ''}`}
-            onClick={() => handleSort('status')}
-          >
-            Status {getSortIcon('status')}
-          </button>
-        </div>
-      </div>
+    <Stack spacing={2}>
+      {/* Enhanced Header */}
+      <Paper elevation={0} sx={{ p: 2, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          justifyContent="space-between"
+          alignItems={{ xs: 'stretch', md: 'center' }}
+          spacing={2}
+        >
+          <Stack direction="row" alignItems="center" spacing={2}>
+            <Tooltip title={selectedReviews.size === paginatedReviews.length ? 'Deselect all on page' : 'Select all on page'}>
+              <Checkbox
+                checked={selectedReviews.size === paginatedReviews.length && paginatedReviews.length > 0}
+                indeterminate={selectedReviews.size > 0 && selectedReviews.size < paginatedReviews.length}
+                onChange={handleSelectAll}
+                size="small"
+              />
+            </Tooltip>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              {sortedReviews.length} review{sortedReviews.length !== 1 ? 's' : ''}
+            </Typography>
+            {selectedReviews.size > 0 && (
+              <Chip
+                label={`${selectedReviews.size} selected`}
+                size="small"
+                color="primary"
+                variant="outlined"
+              />
+            )}
+            <Typography variant="body2" color="text.secondary">
+              Showing {startIndex + 1}-{Math.min(endIndex, sortedReviews.length)} of {sortedReviews.length}
+            </Typography>
+          </Stack>
 
-      {showBulkActions && (
-        <div className="bulk-actions">
-          <div className="bulk-actions-content">
-            <span className="bulk-actions-label">
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Typography variant="body2" color="text.secondary">
+              Sort by:
+            </Typography>
+            <Button
+              variant={sortField === 'submittedAt' ? 'contained' : 'outlined'}
+              size="small"
+              onClick={() => handleSort('submittedAt')}
+              endIcon={getSortIcon('submittedAt')}
+              sx={{ textTransform: 'none' }}
+            >
+              Date
+            </Button>
+            <Button
+              variant={sortField === 'rating' ? 'contained' : 'outlined'}
+              size="small"
+              onClick={() => handleSort('rating')}
+              endIcon={getSortIcon('rating')}
+              sx={{ textTransform: 'none' }}
+            >
+              Rating
+            </Button>
+            <Button
+              variant={sortField === 'guestName' ? 'contained' : 'outlined'}
+              size="small"
+              onClick={() => handleSort('guestName')}
+              endIcon={getSortIcon('guestName')}
+              sx={{ textTransform: 'none' }}
+            >
+              Guest
+            </Button>
+            <Button
+              variant={sortField === 'channel' ? 'contained' : 'outlined'}
+              size="small"
+              onClick={() => handleSort('channel')}
+              endIcon={getSortIcon('channel')}
+              sx={{ textTransform: 'none' }}
+            >
+              Channel
+            </Button>
+            <Button
+              variant={sortField === 'status' ? 'contained' : 'outlined'}
+              size="small"
+              onClick={() => handleSort('status')}
+              endIcon={getSortIcon('status')}
+              sx={{ textTransform: 'none' }}
+            >
+              Status
+            </Button>
+          </Stack>
+        </Stack>
+      </Paper>
+
+      {/* Enhanced Bulk Actions */}
+      <Collapse in={showBulkActions}>
+        <Alert
+          severity="info"
+          sx={{
+            borderRadius: 2,
+            '& .MuiAlert-message': { width: '100%' }
+          }}
+        >
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            justifyContent="space-between"
+            alignItems={{ xs: 'stretch', sm: 'center' }}
+            spacing={2}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
               {selectedReviews.size} review{selectedReviews.size !== 1 ? 's' : ''} selected
-            </span>
-            <div className="bulk-actions-buttons">
-              <button
-                className="bulk-btn bulk-btn-primary"
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<Eye size={16} />}
                 onClick={() => handleBulkAction('show')}
+                sx={{ textTransform: 'none' }}
               >
-                <Eye size={14} />
                 Show on Website
-              </button>
-              <button
-                className="bulk-btn bulk-btn-secondary"
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<EyeOff size={16} />}
                 onClick={() => handleBulkAction('hide')}
+                sx={{ textTransform: 'none' }}
               >
-                <EyeOff size={14} />
                 Hide from Website
-              </button>
-              <button
-                className="bulk-btn bulk-btn-success"
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                color="success"
                 onClick={() => handleBulkAction('publish')}
+                sx={{ textTransform: 'none' }}
               >
                 Publish
-              </button>
-              <button
-                className="bulk-btn bulk-btn-danger"
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                color="error"
                 onClick={() => handleBulkAction('reject')}
+                sx={{ textTransform: 'none' }}
               >
                 Reject
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              </Button>
+            </Stack>
+          </Stack>
+        </Alert>
+      </Collapse>
 
+      {/* Enhanced Review Cards */}
       {paginatedReviews.map((review) => (
-        <div key={review._id} className="review-card">
-          <div className="review-header">
-            <div className="review-meta">
-              <button
-                className="review-checkbox"
-                onClick={() => handleSelectReview(review._id)}
-                title={selectedReviews.has(review._id) ? 'Deselect review' : 'Select review'}
-              >
-                {selectedReviews.has(review._id) ? <CheckSquare size={16} /> : <Square size={16} />}
-              </button>
-              <div className="review-guest">
-                <User size={16} />
-                <span className="guest-name">{review.guestName}</span>
-              </div>
-              <div className="review-property">
-                <Home size={16} />
-                <span>{review.listingName}</span>
-              </div>
-              <div className="review-date">
-                <Calendar size={16} />
-                <span>{formatDate(review.submittedAt)}</span>
-              </div>
-            </div>
-            <div className="review-actions">
-              <span className={`badge ${getStatusBadgeClass(review.status)}`}>
-                {review.status}
-              </span>
-              <span className="badge">{review.channel}</span>
-              <button
-                className={`btn-icon ${review.showOnWebsite ? 'active' : ''}`}
-                onClick={() => handleToggleWebsite(review)}
-                title={review.showOnWebsite ? 'Hide from website' : 'Show on website'}
-              >
-                {review.showOnWebsite ? <Eye size={18} /> : <EyeOff size={18} />}
-              </button>
-            </div>
-          </div>
+        <Card
+          key={review._id}
+          elevation={0}
+          sx={{
+            border: 1,
+            borderColor: 'divider',
+            borderRadius: 2,
+            transition: 'all 0.2s ease-in-out',
+            '&:hover': {
+              boxShadow: 2,
+              borderColor: 'primary.light'
+            }
+          }}
+        >
+          <CardContent sx={{ p: 3 }}>
+            {/* Review Header */}
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              justifyContent="space-between"
+              alignItems={{ xs: 'stretch', sm: 'flex-start' }}
+              spacing={2}
+              sx={{ mb: 2 }}
+            >
+              <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
+                <Tooltip title={selectedReviews.has(review._id) ? 'Deselect review' : 'Select review'}>
+                  <Checkbox
+                    checked={selectedReviews.has(review._id)}
+                    onChange={() => handleSelectReview(review._id)}
+                    size="small"
+                  />
+                </Tooltip>
 
-          <div className="review-content">
-            <div className={`review-rating ${getRatingColor(review.rating)}`}>
-              <Star size={20} fill="currentColor" />
-              <span className="rating-value">{review.rating}/10</span>
-            </div>
-            
-            <p className="review-text">{review.publicReview}</p>
-            
-            {review.privateReview && (
-              <div className="private-review">
-                <p className="private-label">Private feedback:</p>
-                <p className="private-text">{review.privateReview}</p>
-              </div>
-            )}
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.light' }}>
+                    <User size={16} />
+                  </Avatar>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    {review.guestName}
+                  </Typography>
+                </Stack>
 
-            <div className="review-categories">
-              {review.reviewCategory.map((cat, idx) => (
-                <div key={idx} className="category-item">
-                  <span className="category-name">{cat.category.replace(/_/g, ' ')}</span>
-                  <div className="category-rating">
-                    <div className="rating-bar">
-                      <div 
-                        className="rating-fill" 
-                        style={{ width: `${cat.rating * 10}%` }}
-                      />
-                    </div>
-                    <span className="rating-text">{cat.rating}/10</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Home size={16} color="#93968B" />
+                  <Typography variant="body2" color="text.secondary">
+                    {review.listingName}
+                  </Typography>
+                </Stack>
 
-            {expandedReview === review._id && (
-              <div className="review-expanded">
-                <div className="response-section">
-                  <h4>Management Response</h4>
-                  {review.responseText ? (
-                    <div className="existing-response">
-                      <p>{review.responseText}</p>
-                      <small>Responded on {formatDate(review.respondedAt || review.submittedAt)}</small>
-                    </div>
-                  ) : (
-                    <div className="response-form">
-                      <textarea
-                        placeholder="Write a professional response to this review..."
-                        value={responseText[review._id] || ''}
-                        onChange={(e) => setResponseText(prev => ({ 
-                          ...prev, 
-                          [review._id]: e.target.value 
-                        }))}
-                        rows={3}
-                      />
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => handleResponseSubmit(review)}
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Calendar size={16} color="#93968B" />
+                  <Typography variant="body2" color="text.secondary">
+                    {formatDate(review.submittedAt)}
+                  </Typography>
+                </Stack>
+              </Stack>
+
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Chip
+                  label={review.status}
+                  color={getStatusColor(review.status)}
+                  size="small"
+                  variant="filled"
+                />
+                <Chip
+                  label={review.channel}
+                  size="small"
+                  variant="outlined"
+                />
+                <Tooltip title={review.showOnWebsite ? 'Hide from website' : 'Show on website'}>
+                  <IconButton
+                    onClick={() => handleToggleWebsite(review)}
+                    color={review.showOnWebsite ? 'primary' : 'default'}
+                    size="small"
+                  >
+                    {review.showOnWebsite ? <Eye size={18} /> : <EyeOff size={18} />}
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+            </Stack>
+
+            <Divider sx={{ mb: 2 }} />
+
+            {/* Review Content */}
+            <Stack spacing={2}>
+              {/* Rating */}
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Rating
+                  value={review.rating / 2}
+                  readOnly
+                  size="small"
+                  precision={0.1}
+                />
+                <Chip
+                  label={`${review.rating}/10`}
+                  color={getRatingColor(review.rating)}
+                  size="small"
+                  variant="filled"
+                  sx={{ fontWeight: 600 }}
+                />
+              </Stack>
+
+              {/* Review Text */}
+              <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
+                {review.publicReview}
+              </Typography>
+
+              {/* Private Review */}
+              {review.privateReview && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    bgcolor: 'background.secondary',
+                    borderRadius: 1,
+                    border: 1,
+                    borderColor: 'divider'
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, mb: 1, display: 'block' }}>
+                    Private feedback:
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
+                    {review.privateReview}
+                  </Typography>
+                </Paper>
+              )}
+
+              {/* Category Ratings */}
+              {review.reviewCategory.length > 0 && (
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                    Category Ratings
+                  </Typography>
+                  <Stack spacing={1}>
+                    {review.reviewCategory.map((cat, idx) => (
+                      <Stack key={idx} direction="row" alignItems="center" spacing={2}>
+                        <Typography variant="body2" sx={{ minWidth: 120, textTransform: 'capitalize' }}>
+                          {cat.category.replace(/_/g, ' ')}
+                        </Typography>
+                        <Box sx={{ flexGrow: 1 }}>
+                          <LinearProgress
+                            variant="determinate"
+                            value={cat.rating * 10}
+                            sx={{
+                              height: 6,
+                              borderRadius: 3,
+                              bgcolor: 'background.secondary',
+                              '& .MuiLinearProgress-bar': {
+                                borderRadius: 3,
+                                bgcolor: 'secondary.main'
+                              }
+                            }}
+                          />
+                        </Box>
+                        <Typography variant="body2" sx={{ minWidth: 40, fontWeight: 500 }}>
+                          {cat.rating}/10
+                        </Typography>
+                      </Stack>
+                    ))}
+                  </Stack>
+                </Box>
+              )}
+
+              {/* Expanded Review Section */}
+              <Collapse in={expandedReview === review._id}>
+                <Box sx={{ pt: 2 }}>
+                  <Divider sx={{ mb: 2 }} />
+
+                  {/* Management Response Section */}
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                      Management Response
+                    </Typography>
+                    {review.responseText ? (
+                      <Paper
+                        elevation={0}
+                        sx={{
+                          p: 2,
+                          bgcolor: 'background.secondary',
+                          borderRadius: 1,
+                          border: 1,
+                          borderColor: 'divider'
+                        }}
                       >
-                        <MessageCircle size={16} />
-                        Submit Response
-                      </button>
-                    </div>
-                  )}
-                </div>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          {review.responseText}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Responded on {formatDate(review.respondedAt || review.submittedAt)}
+                        </Typography>
+                      </Paper>
+                    ) : (
+                      <Stack spacing={2}>
+                        <TextField
+                          multiline
+                          rows={3}
+                          placeholder="Write a professional response to this review..."
+                          value={responseText[review._id] || ''}
+                          onChange={(e) => setResponseText(prev => ({
+                            ...prev,
+                            [review._id]: e.target.value
+                          }))}
+                          variant="outlined"
+                          fullWidth
+                        />
+                        <Button
+                          variant="contained"
+                          startIcon={<Reply size={16} />}
+                          onClick={() => handleResponseSubmit(review)}
+                          sx={{ alignSelf: 'flex-start', textTransform: 'none' }}
+                        >
+                          Submit Response
+                        </Button>
+                      </Stack>
+                    )}
+                  </Box>
 
-                <div className="review-controls">
-                  <label>Change Status:</label>
-                  <div className="status-buttons">
-                    <button
-                      className={`btn btn-sm ${review.status === 'published' ? 'btn-primary' : 'btn-secondary'}`}
-                      onClick={() => handleStatusChange(review, 'published')}
-                    >
-                      Published
-                    </button>
-                    <button
-                      className={`btn btn-sm ${review.status === 'pending' ? 'btn-primary' : 'btn-secondary'}`}
-                      onClick={() => handleStatusChange(review, 'pending')}
-                    >
-                      Pending
-                    </button>
-                    <button
-                      className={`btn btn-sm ${review.status === 'rejected' ? 'btn-primary' : 'btn-secondary'}`}
-                      onClick={() => handleStatusChange(review, 'rejected')}
-                    >
-                      Rejected
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+                  {/* Status Controls */}
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                      Change Status:
+                    </Typography>
+                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                      <Button
+                        variant={review.status === 'published' ? 'contained' : 'outlined'}
+                        size="small"
+                        onClick={() => handleStatusChange(review, 'published')}
+                        color="success"
+                        sx={{ textTransform: 'none' }}
+                      >
+                        Published
+                      </Button>
+                      <Button
+                        variant={review.status === 'pending' ? 'contained' : 'outlined'}
+                        size="small"
+                        onClick={() => handleStatusChange(review, 'pending')}
+                        color="warning"
+                        sx={{ textTransform: 'none' }}
+                      >
+                        Pending
+                      </Button>
+                      <Button
+                        variant={review.status === 'rejected' ? 'contained' : 'outlined'}
+                        size="small"
+                        onClick={() => handleStatusChange(review, 'rejected')}
+                        color="error"
+                        sx={{ textTransform: 'none' }}
+                      >
+                        Rejected
+                      </Button>
+                    </Stack>
+                  </Box>
+                </Box>
+              </Collapse>
 
-          <button
-            className="review-expand-btn"
-            onClick={() => setExpandedReview(
-              expandedReview === review._id ? null : review._id
-            )}
-          >
-            {expandedReview === review._id ? 'Show Less' : 'Manage Review'}
-          </button>
-        </div>
+              {/* Expand/Collapse Button */}
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={() => setExpandedReview(
+                  expandedReview === review._id ? null : review._id
+                )}
+                sx={{
+                  mt: 2,
+                  textTransform: 'none',
+                  borderStyle: 'dashed'
+                }}
+              >
+                {expandedReview === review._id ? 'Show Less' : 'Manage Review'}
+              </Button>
+            </Stack>
+          </CardContent>
+        </Card>
       ))}
 
-      {/* Pagination Controls */}
+      {/* Enhanced Pagination */}
       {totalPages > 1 && (
-        <div className="pagination-controls">
-          <button
-            className="pagination-btn"
-            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-          >
-            <ChevronLeft size={16} />
-            Previous
-          </button>
-
-          <div className="pagination-pages">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-              // Show first page, last page, current page, and pages around current page
-              const showPage = page === 1 ||
-                              page === totalPages ||
-                              Math.abs(page - currentPage) <= 2;
-
-              if (!showPage) {
-                // Show ellipsis for gaps
-                if (page === 2 && currentPage > 4) {
-                  return <span key={page} className="pagination-ellipsis">...</span>;
+        <Paper elevation={0} sx={{ p: 2, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+          <Stack direction="row" justifyContent="center" alignItems="center">
+            <Pagination
+              count={totalPages}
+              page={currentPage}
+              onChange={(_, page) => setCurrentPage(page)}
+              color="primary"
+              size="medium"
+              showFirstButton
+              showLastButton
+              sx={{
+                '& .MuiPaginationItem-root': {
+                  borderRadius: 2
                 }
-                if (page === totalPages - 1 && currentPage < totalPages - 3) {
-                  return <span key={page} className="pagination-ellipsis">...</span>;
-                }
-                return null;
-              }
-
-              return (
-                <button
-                  key={page}
-                  className={`pagination-page ${page === currentPage ? 'active' : ''}`}
-                  onClick={() => setCurrentPage(page)}
-                >
-                  {page}
-                </button>
-              );
-            })}
-          </div>
-
-          <button
-            className="pagination-btn"
-            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage === totalPages}
-          >
-            Next
-            <ChevronRight size={16} />
-          </button>
-        </div>
+              }}
+            />
+          </Stack>
+        </Paper>
       )}
-    </div>
+    </Stack>
   );
 };
 
