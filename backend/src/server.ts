@@ -12,7 +12,6 @@ import googleRoutes from "./routes/google";
 import { seedDatabase } from "./utils/seedDatabase";
 import { env } from "./config";
 
-
 class Server {
   private app: express.Application;
   private config: ServerConfig;
@@ -35,14 +34,30 @@ class Server {
   }
 
   private setupMiddleware(): void {
+    // Security middleware
+    this.app.use((_req, res, next) => {
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("X-Frame-Options", "DENY");
+      res.setHeader("X-XSS-Protection", "1; mode=block");
+      next();
+    });
+
     this.app.use(
       cors({
         origin: this.config.corsOrigin,
         credentials: true,
       })
     );
-    this.app.use(express.json());
-    this.app.use(express.urlencoded({ extended: true }));
+    this.app.use(express.json({ limit: "10mb" }));
+    this.app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+    // Request logging in development
+    if (env.nodeEnv === "development") {
+      this.app.use((req, _res, next) => {
+        console.log(`${req.method} ${req.path}`);
+        next();
+      });
+    }
   }
 
   private setupRoutes(): void {

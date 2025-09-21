@@ -1,0 +1,86 @@
+# Render.com Infrastructure as Code Configuration
+# This file defines all services for the FlexLiving Reviews Dashboard
+
+services:
+  # Backend API Service
+  - type: web
+    name: flexliving-reviews-backend
+    runtime: node
+    plan: starter # Change to 'standard' or 'pro' for production
+    region: oregon # Choose region closest to your users
+    buildCommand: cd backend && npm ci && npm run build
+    startCommand: cd backend && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: CORS_ORIGIN
+        fromService:
+          type: web
+          name: flexliving-reviews-frontend
+          property: url
+      # Database connection - will be set via Render dashboard
+      - key: MONGODB_URI
+        sync: false # Set manually in Render dashboard
+      # Hostaway API Configuration
+      - key: HOSTAWAY_ACCOUNT_ID
+        value: "61148"
+      - key: HOSTAWAY_API_KEY
+        sync: false # Set manually in Render dashboard (sensitive)
+      - key: HOSTAWAY_API_URL
+        value: https://api.hostaway.com/v1
+      # Google API Configuration
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false # Set manually in Render dashboard (sensitive)
+      - key: GOOGLE_PLACES_BASE_URL
+        value: https://places.googleapis.com/v1
+      - key: GOOGLE_CLIENT_ID
+        sync: false # Set manually in Render dashboard (sensitive)
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false # Set manually in Render dashboard (sensitive)
+      # Security
+      - key: JWT_SECRET
+        generateValue: true # Render will generate a secure random value
+    autoDeploy: true
+    branch: main # Change to your main branch name
+    rootDir: .
+    
+  # Frontend Static Site
+  - type: web
+    name: flexliving-reviews-frontend
+    runtime: static
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/build
+    pullRequestPreviewsEnabled: true
+    envVars:
+      - key: REACT_APP_API_URL
+        fromService:
+          type: web
+          name: flexliving-reviews-backend
+          property: url
+        value: /api # This will be appended to the backend URL
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-XSS-Protection
+        value: 1; mode=block
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /static/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    autoDeploy: true
+    branch: main # Change to your main branch name
+    rootDir: .
+
+# Database will be MongoDB Atlas (external service)
+# You'll need to set up MongoDB Atlas separately and provide the connection string
