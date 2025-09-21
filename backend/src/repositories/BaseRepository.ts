@@ -36,6 +36,17 @@ export abstract class BaseRepository<T extends Document> {
     }
   }
 
+  async findByExternalIds(externalId: string): Promise<T | null> {
+    try {
+      return await this.model.findOne({ externalId }).exec();
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to fetch document with externalId ${externalId}`,
+        error as Error
+      );
+    }
+  }
+
   async findOne(filter: FilterQuery<T>): Promise<T | null> {
     try {
       return await this.model.findOne(filter).exec();

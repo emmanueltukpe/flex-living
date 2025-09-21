@@ -27,14 +27,7 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
 
 // Review Related Types
 export interface ReviewCategory {
-  category:
-    | "cleanliness"
-    | "accuracy"
-    | "check_in"
-    | "communication"
-    | "location"
-    | "value"
-    | "respect_house_rules";
+  category: string;
   rating: number;
 }
 
@@ -51,14 +44,7 @@ export interface Review {
   guestName: string;
   listingId: string;
   listingName: string;
-  channel:
-    | "Airbnb"
-    | "Booking.com"
-    | "Direct"
-    | "Vrbo"
-    | "Expedia"
-    | "Google"
-    | "Other";
+  channel: string;
   reservationId: string;
   showOnWebsite: boolean;
   responseText?: string;
@@ -210,18 +196,36 @@ export interface HostawayApiResponse {
 }
 
 export interface GoogleReview {
-  author_name: string;
+  name: string;
+  relativePublishTimeDescription: string;
   rating: number;
-  text: string;
-  time: number;
-  profile_photo_url?: string;
-  relative_time_description?: string;
+  text: {
+    text: string;
+    languageCode: string;
+  };
+  originalText: {
+    text: string;
+    languageCode: string;
+  };
+  authorAttribution: {
+    displayName: string;
+    uri: string;
+    photoUri: string;
+  };
+  publishTime: string;
+  flagContentUri: string;
+  googleMapsUri: string;
 }
 
 export interface GooglePlace {
   name: string;
+  displayName: {
+    text: string;
+    languageCode: string;
+  };
+  formattedAddress: string;
   rating: number;
-  user_ratings_total: number;
+  userRatingCount: number;
   reviews?: GoogleReview[];
 }
 
@@ -237,6 +241,7 @@ export interface GooglePlaceSearchResult {
   address: string;
   rating?: number;
   totalRatings?: number;
+  reviews?: GoogleReview[];
 }
 
 // Sync and Seed Types

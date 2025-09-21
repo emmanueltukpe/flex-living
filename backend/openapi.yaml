@@ -38,6 +38,8 @@ tags:
     description: Hostaway integration endpoints
   - name: Google
     description: Google Places API integration endpoints
+  - name: Templates
+    description: Response template management operations
 
 paths:
   /api/health:
@@ -336,6 +338,49 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+    delete:
+      tags:
+        - Reviews
+      summary: Delete a review
+      description: Delete a specific review by ID
+      operationId: deleteReview
+      parameters:
+        - name: id
+          in: path
+          description: Review ID
+          required: true
+          schema:
+            type: string
+            example: "60f7b3b3b3b3b3b3b3b3b3b3"
+      responses:
+        '200':
+          description: Review deleted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: "Review deleted successfully"
+        '404':
+          description: Review not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to delete review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/reviews/{id}/helpful:
     post:
       tags:
@@ -432,6 +477,87 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+    post:
+      tags:
+        - Properties
+      summary: Create a new property
+      description: Create a new property with the provided information
+      operationId: createProperty
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - externalId
+                - name
+                - address
+                - type
+                - bedrooms
+                - bathrooms
+                - maxGuests
+              properties:
+                externalId:
+                  type: string
+                  example: "PROP003"
+                name:
+                  type: string
+                  example: "Modern Downtown Loft"
+                address:
+                  type: string
+                  example: "456 Oak Street, Downtown, City 12345"
+                type:
+                  type: string
+                  example: "Apartment"
+                bedrooms:
+                  type: integer
+                  example: 2
+                bathrooms:
+                  type: integer
+                  example: 2
+                maxGuests:
+                  type: integer
+                  example: 4
+                imageUrl:
+                  type: string
+                  example: "https://example.com/property-image.jpg"
+                description:
+                  type: string
+                  example: "Beautiful modern loft in the heart of downtown"
+                amenities:
+                  type: array
+                  items:
+                    type: string
+                  example: ["WiFi", "Kitchen", "Parking", "Air Conditioning"]
+                isActive:
+                  type: boolean
+                  default: true
+      responses:
+        '201':
+          description: Property created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Property'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Failed to create property
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/properties/{id}:
     get:
       tags:
@@ -518,6 +644,49 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Properties
+      summary: Delete a property
+      description: Delete a specific property by ID
+      operationId: deleteProperty
+      parameters:
+        - name: id
+          in: path
+          description: Property ID
+          required: true
+          schema:
+            type: string
+            example: "60f7b3b3b3b3b3b3b3b3b3b3"
+      responses:
+        '200':
+          description: Property deleted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: "Property deleted successfully"
+        '404':
+          description: Property not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to delete property
           content:
             application/json:
               schema:
@@ -639,6 +808,421 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Failed to search places
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/google/test-connection:
+    get:
+      tags:
+        - Google
+      summary: Test Google Places API connection
+      description: Test the connection to Google Places API to verify configuration
+      operationId: testGoogleConnection
+      responses:
+        '200':
+          description: API connection test successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          success:
+                            type: boolean
+                            example: true
+                          message:
+                            type: string
+                            example: "Google Places API connection successful"
+        '502':
+          description: API connection failed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ErrorResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          success:
+                            type: boolean
+                            example: false
+                          error:
+                            type: string
+                            example: "API key not configured"
+
+  # New Enhanced Endpoints
+  /api/reviews/bulk-update:
+    post:
+      tags:
+        - Reviews
+      summary: Bulk update multiple reviews
+      description: Update multiple reviews simultaneously with the same changes
+      operationId: bulkUpdateReviews
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reviewIds
+                - updates
+              properties:
+                reviewIds:
+                  type: array
+                  items:
+                    type: string
+                  example: ["60f7b3b3b3b3b3b3b3b3b3b3", "60f7b3b3b3b3b3b3b3b3b3b4"]
+                updates:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                      enum: [published, pending, rejected]
+                    showOnWebsite:
+                      type: boolean
+                    responseText:
+                      type: string
+                  example:
+                    status: "published"
+                    showOnWebsite: true
+      responses:
+        '200':
+          description: Reviews updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          modifiedCount:
+                            type: integer
+                            example: 2
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Failed to update reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/reviews/export:
+    get:
+      tags:
+        - Reviews
+      summary: Export reviews data
+      description: Export reviews in CSV or JSON format with optional filtering
+      operationId: exportReviews
+      parameters:
+        - name: format
+          in: query
+          description: Export format
+          required: false
+          schema:
+            type: string
+            enum: [json, csv]
+            default: json
+        - name: listingId
+          in: query
+          description: Filter by property listing ID
+          required: false
+          schema:
+            type: string
+        - name: channel
+          in: query
+          description: Filter by booking channel
+          required: false
+          schema:
+            type: string
+            enum: [Airbnb, Booking.com, Direct, Vrbo, Expedia, Google, Other]
+        - name: status
+          in: query
+          description: Filter by review status
+          required: false
+          schema:
+            type: string
+            enum: [published, pending, rejected]
+      responses:
+        '200':
+          description: Reviews exported successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          reviews:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Review'
+            text/csv:
+              schema:
+                type: string
+                example: "ID,External ID,Guest Name,Property,Channel,Rating,Status,Public Review,Submitted At,Show On Website"
+        '500':
+          description: Failed to export reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Templates Management
+  /api/templates:
+    get:
+      tags:
+        - Templates
+      summary: Get all response templates
+      description: Retrieve all active response templates for review responses
+      operationId: getAllTemplates
+      responses:
+        '200':
+          description: Templates retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          templates:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Template'
+        '500':
+          description: Failed to retrieve templates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Templates
+      summary: Create a new response template
+      description: Create a new template for review responses
+      operationId: createTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - content
+              properties:
+                name:
+                  type: string
+                  example: "Thank You - Positive Review"
+                content:
+                  type: string
+                  example: "Thank you for your wonderful review! We're delighted to hear about your experience."
+                category:
+                  type: string
+                  enum: [positive, negative, neutral, general]
+                  default: general
+                isActive:
+                  type: boolean
+                  default: true
+      responses:
+        '201':
+          description: Template created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          template:
+                            $ref: '#/components/schemas/Template'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Failed to create template
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/templates/{id}:
+    get:
+      tags:
+        - Templates
+      summary: Get template by ID
+      description: Retrieve a specific template by its ID
+      operationId: getTemplateById
+      parameters:
+        - name: id
+          in: path
+          description: Template ID
+          required: true
+          schema:
+            type: string
+            example: "1"
+      responses:
+        '200':
+          description: Template retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          template:
+                            $ref: '#/components/schemas/Template'
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to retrieve template
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Templates
+      summary: Update template
+      description: Update an existing template
+      operationId: updateTemplate
+      parameters:
+        - name: id
+          in: path
+          description: Template ID
+          required: true
+          schema:
+            type: string
+            example: "1"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Updated Template Name"
+                content:
+                  type: string
+                  example: "Updated template content"
+                category:
+                  type: string
+                  enum: [positive, negative, neutral, general]
+                isActive:
+                  type: boolean
+      responses:
+        '200':
+          description: Template updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          template:
+                            $ref: '#/components/schemas/Template'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to update template
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Templates
+      summary: Delete template
+      description: Delete a specific template by ID
+      operationId: deleteTemplate
+      parameters:
+        - name: id
+          in: path
+          description: Template ID
+          required: true
+          schema:
+            type: string
+            example: "1"
+      responses:
+        '200':
+          description: Template deleted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: "Template deleted successfully"
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to delete template
           content:
             application/json:
               schema:
@@ -1296,3 +1880,32 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/GooglePlaceSearchResult'
+
+    # Template Schema
+    Template:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "1"
+        name:
+          type: string
+          example: "Thank You - Positive Review"
+        content:
+          type: string
+          example: "Thank you so much for your wonderful review! We're delighted to hear that you enjoyed your stay at {propertyName}."
+        category:
+          type: string
+          enum: [positive, negative, neutral, general]
+          example: "positive"
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"

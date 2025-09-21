@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { reviewsApi, propertiesApi, hostawayApi, Review, Property, ReviewStatistics } from '../../services/api';
 import ReviewsList from './ReviewsList';
 import PropertyStats from './PropertyStats';
+import PropertyList from './PropertyList';
 import ReviewFilters from './ReviewFilters';
 import Analytics from './Analytics';
 import './Dashboard.css';
@@ -21,7 +22,7 @@ const Dashboard: React.FC = () => {
     startDate: '',
     endDate: ''
   });
-  const [activeTab, setActiveTab] = useState<'reviews' | 'analytics'>('reviews');
+  const [activeTab, setActiveTab] = useState<'reviews' | 'properties' | 'analytics'>('reviews');
 
   useEffect(() => {
     loadData();
@@ -144,6 +145,12 @@ const Dashboard: React.FC = () => {
               Reviews Management
             </button>
             <button
+              className={`tab ${activeTab === 'properties' ? 'active' : ''}`}
+              onClick={() => setActiveTab('properties')}
+            >
+              Properties
+            </button>
+            <button
               className={`tab ${activeTab === 'analytics' ? 'active' : ''}`}
               onClick={() => setActiveTab('analytics')}
             >
@@ -152,7 +159,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {activeTab === 'reviews' ? (
+        {activeTab === 'reviews' && (
           <div className="reviews-section">
             <ReviewFilters
               filters={filters}
@@ -167,7 +174,18 @@ const Dashboard: React.FC = () => {
               loading={loading}
             />
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'properties' && (
+          <div className="properties-section">
+            <PropertyList
+              properties={properties}
+              loading={loading}
+            />
+          </div>
+        )}
+
+        {activeTab === 'analytics' && (
           <Analytics
             statistics={statistics}
             reviews={reviews}

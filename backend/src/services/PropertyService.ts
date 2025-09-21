@@ -34,7 +34,7 @@ export class PropertyService extends BaseService {
   }
 
   async getPropertyById(id: string): Promise<Property> {
-    const property = await this.propertyRepository.findByIdOrExternalId(id);
+    const property = await this.propertyRepository.findByExternalId(id);
     if (!property) {
       throw new NotFoundError("Property", id);
     }
@@ -47,6 +47,8 @@ export class PropertyService extends BaseService {
     reviewService?: any
   ): Promise<PropertyWithReviews> {
     const property = await this.getPropertyById(id);
+    console.log(property);
+    
 
     let reviews: any[] = [];
     if (reviewService) {

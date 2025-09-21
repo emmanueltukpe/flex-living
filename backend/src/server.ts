@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
 import path from "path";
@@ -13,7 +12,6 @@ import googleRoutes from "./routes/google";
 import { seedDatabase } from "./utils/seedDatabase";
 import { env } from "./config";
 
-dotenv.config();
 
 class Server {
   private app: express.Application;
@@ -163,11 +161,6 @@ class Server {
 
       // Start the server
       const server = this.app.listen(this.config.port, () => {
-        console.log(
-          env.hostaway.apiUrl,
-          env.hostaway.apiKey,
-          env.hostaway.accountId
-        );
         console.log(`Server running on port ${this.config.port}`);
       });
 

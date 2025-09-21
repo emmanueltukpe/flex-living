@@ -17,7 +17,7 @@ export class PropertyRepository extends BaseRepository<IProperty> {
   }
 
   async findByExternalId(externalId: string): Promise<IProperty | null> {
-    return await this.findOne({ externalId });
+    return await this.findByExternalIds(externalId);
   }
 
   async findByIdOrExternalId(identifier: string): Promise<IProperty | null> {

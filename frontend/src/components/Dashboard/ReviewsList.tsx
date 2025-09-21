@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Review } from '../../services/api';
-import { Star, Eye, EyeOff, MessageCircle, Calendar, User, Home, ArrowUpDown, ArrowUp, ArrowDown, CheckSquare, Square } from 'lucide-react';
+import { Star, Eye, EyeOff, MessageCircle, Calendar, User, Home, ArrowUpDown, ArrowUp, ArrowDown, CheckSquare, Square, ChevronLeft, ChevronRight } from 'lucide-react';
 import './ReviewsList.css';
 
 interface ReviewsListProps {
@@ -19,6 +19,10 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ reviews, onUpdateReview, load
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedReviews, setSelectedReviews] = useState<Set<string>>(new Set());
   const [showBulkActions, setShowBulkActions] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const reviewsPerPage = 20;
 
   // Sort reviews based on current sort field and order
   const sortedReviews = useMemo(() => {
@@ -43,6 +47,17 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ reviews, onUpdateReview, load
       return 0;
     });
   }, [reviews, sortField, sortOrder]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(sortedReviews.length / reviewsPerPage);
+  const startIndex = (currentPage - 1) * reviewsPerPage;
+  const endIndex = startIndex + reviewsPerPage;
+  const paginatedReviews = sortedReviews.slice(startIndex, endIndex);
+
+  // Reset to first page when reviews change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [reviews.length, sortField, sortOrder]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -70,11 +85,11 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ reviews, onUpdateReview, load
   };
 
   const handleSelectAll = () => {
-    if (selectedReviews.size === sortedReviews.length) {
+    if (selectedReviews.size === paginatedReviews.length) {
       setSelectedReviews(new Set());
       setShowBulkActions(false);
     } else {
-      setSelectedReviews(new Set(sortedReviews.map(r => r._id)));
+      setSelectedReviews(new Set(paginatedReviews.map(r => r._id)));
       setShowBulkActions(true);
     }
   };
@@ -167,14 +182,17 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ reviews, onUpdateReview, load
           <button
             className="select-all-btn"
             onClick={handleSelectAll}
-            title={selectedReviews.size === sortedReviews.length ? 'Deselect all' : 'Select all'}
+            title={selectedReviews.size === paginatedReviews.length ? 'Deselect all on page' : 'Select all on page'}
           >
-            {selectedReviews.size === sortedReviews.length ? <CheckSquare size={16} /> : <Square size={16} />}
+            {selectedReviews.size === paginatedReviews.length ? <CheckSquare size={16} /> : <Square size={16} />}
           </button>
           {sortedReviews.length} review{sortedReviews.length !== 1 ? 's' : ''}
           {selectedReviews.size > 0 && (
             <span className="selected-count">({selectedReviews.size} selected)</span>
           )}
+          <div className="pagination-info">
+            Showing {startIndex + 1}-{Math.min(endIndex, sortedReviews.length)} of {sortedReviews.length}
+          </div>
         </div>
         <div className="sort-controls">
           <span>Sort by:</span>
@@ -249,7 +267,7 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ reviews, onUpdateReview, load
         </div>
       )}
 
-      {sortedReviews.map((review) => (
+      {paginatedReviews.map((review) => (
         <div key={review._id} className="review-card">
           <div className="review-header">
             <div className="review-meta">
@@ -388,6 +406,59 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ reviews, onUpdateReview, load
           </button>
         </div>
       ))}
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="pagination-controls">
+          <button
+            className="pagination-btn"
+            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft size={16} />
+            Previous
+          </button>
+
+          <div className="pagination-pages">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+              // Show first page, last page, current page, and pages around current page
+              const showPage = page === 1 ||
+                              page === totalPages ||
+                              Math.abs(page - currentPage) <= 2;
+
+              if (!showPage) {
+                // Show ellipsis for gaps
+                if (page === 2 && currentPage > 4) {
+                  return <span key={page} className="pagination-ellipsis">...</span>;
+                }
+                if (page === totalPages - 1 && currentPage < totalPages - 3) {
+                  return <span key={page} className="pagination-ellipsis">...</span>;
+                }
+                return null;
+              }
+
+              return (
+                <button
+                  key={page}
+                  className={`pagination-page ${page === currentPage ? 'active' : ''}`}
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            className="pagination-btn"
+            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };

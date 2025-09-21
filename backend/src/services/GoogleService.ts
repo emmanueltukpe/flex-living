@@ -12,7 +12,7 @@ import { env } from "../config";
 
 export class GoogleService extends BaseService {
   private apiKey: string;
-  private baseUrl: string = "https://maps.googleapis.com/maps/api/place";
+  private baseUrl: string = env.googlePlacesBaseUrl as string;
 
   constructor(apiKey?: string) {
     super();
@@ -23,8 +23,10 @@ export class GoogleService extends BaseService {
     status: "success" | "error";
     message?: string;
     data?: {
-      placeName: string;
-      placeRating: number;
+      placeId?: string;
+      name: string;
+      address: string;
+      rating: number;
       totalRatings: number;
       reviews: Review[];
     };
@@ -60,9 +62,11 @@ export class GoogleService extends BaseService {
       return {
         status: "success",
         data: {
-          placeName: place.name,
-          placeRating: place.rating,
-          totalRatings: place.user_ratings_total,
+          placeId: place.name,
+          name: place.displayName.text,
+          address: place.formattedAddress,
+          rating: place.rating,
+          totalRatings: place.userRatingCount,
           reviews: normalizedReviews,
         },
       };
@@ -108,6 +112,8 @@ export class GoogleService extends BaseService {
         data: places,
       };
     } catch (error) {
+      console.log(error);
+
       return {
         status: "error",
         message:
@@ -120,26 +126,27 @@ export class GoogleService extends BaseService {
 
   private async fetchPlaceDetails(placeId: string): Promise<GooglePlace> {
     try {
-      const response = await axios.get<GoogleApiResponse>(
-        `${this.baseUrl}/details/json`,
+      const response = await axios.get(
+        `${this.baseUrl}/places/${placeId}?fields=name,displayName,formattedAddress,rating,userRatingCount,reviews`,
         {
           params: {
-            place_id: placeId,
-            fields: "name,rating,user_ratings_total,reviews",
+            // place_id: placeId,
+            // fields: "name,rating,user_ratings_total,reviews",
             key: this.apiKey,
           },
           timeout: 10000,
         }
       );
 
-      if (response.data.status !== "OK") {
+      if (response.status !== 200) {
+        console.log(response.data);
         throw new ExternalApiError(
           "Google Places",
           response.data.error_message || response.data.status
         );
       }
 
-      return response.data.result;
+      return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         throw new ExternalApiError("Google Places", error.message, error);
@@ -151,32 +158,42 @@ export class GoogleService extends BaseService {
   private async searchPlacesApi(
     query: string
   ): Promise<GooglePlaceSearchResult[]> {
+    const requestBody = {
+      textQuery: query,
+    };
+
+    const headers = {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": this.apiKey,
+      "X-Goog-FieldMask":
+        "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.reviews",
+    };
+
     try {
-      const response = await axios.get(`${this.baseUrl}/textsearch/json`, {
-        params: {
-          query: query,
-          key: this.apiKey,
-        },
-        timeout: 10000,
-      });
+      const response = await axios.post(
+        `${this.baseUrl}/places:searchText`,
+        requestBody,
+        { headers: headers, timeout: 10000 }
+      );
 
-      if (response.data.status !== "OK") {
-        throw new ExternalApiError(
-          "Google Places",
-          response.data.error_message || response.data.status
-        );
-      }
+      const places = response.data.places || [];
 
-      return response.data.results.map((place: any) => ({
-        placeId: place.place_id,
-        name: place.name,
-        address: place.formatted_address,
+      return places.map((place: any) => ({
+        placeId: place.id,
+        name: place.displayName,
+        address: place.formattedAddress,
         rating: place.rating,
-        totalRatings: place.user_ratings_total,
+        totalRatings: place.userRatingCount,
+        reviews: this.normalizeGoogleReviews(place.reviews, place.id),
       }));
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        throw new ExternalApiError("Google Places", error.message, error);
+        console.error("Google Places API Error:", error.response?.data);
+        throw new ExternalApiError(
+          "Google Places",
+          error.message,
+          error.response?.data
+        );
       }
       throw error;
     }
@@ -192,11 +209,11 @@ export class GoogleService extends BaseService {
       type: "guest-to-host" as const,
       status: "published" as const,
       rating: review.rating * 2, // Convert 5-star to 10-star scale
-      publicReview: review.text || "",
+      publicReview: review.text.text || "",
       privateReview: undefined,
       reviewCategory: [],
-      submittedAt: new Date(review.time * 1000),
-      guestName: review.author_name,
+      submittedAt: new Date(review.publishTime),
+      guestName: review.authorAttribution.displayName,
       listingId: placeId,
       listingName: "Google Place",
       channel: "Google" as const,
@@ -206,19 +223,22 @@ export class GoogleService extends BaseService {
       respondedAt: undefined,
       helpful: 0,
       notHelpful: 0,
+      source: review.googleMapsUri,
     }));
   }
 
   private getMockReviewsData(): {
-    placeName: string;
-    placeRating: number;
+    name: string;
+    rating: number;
     totalRatings: number;
+    address: string;
     reviews: Review[];
   } {
     return {
-      placeName: "FlexLiving Property",
-      placeRating: 4.5,
+      name: "FlexLiving Property",
+      rating: 4.5,
       totalRatings: 127,
+      address: "123 Main St, Anytown, USA",
       reviews: [
         {
           _id: "google_mock_1",
@@ -281,14 +301,12 @@ export class GoogleService extends BaseService {
         "5. Set GOOGLE_PLACES_API_KEY environment variable",
       ],
       implementation: {
-        primaryEndpoint:
-          "https://maps.googleapis.com/maps/api/place/details/json",
-        searchEndpoint:
-          "https://maps.googleapis.com/maps/api/place/textsearch/json",
+        primaryEndpoint: "https://maps.googleapis.com/maps/api/place/details",
+        searchEndpoint: "https://maps.googleapis.com/maps/api/place/textsearch",
         parameters: {
           place_id:
             "Property Place ID from Google (e.g., ChIJN1t_tDeuEmsRUsoyG83frY4)",
-          fields: "name,rating,user_ratings_total,reviews",
+          fields: "name,rating,userRatingCount,reviews",
           key: "Your Google API Key",
         },
         sampleRequest:
@@ -401,3 +419,4 @@ export class GoogleService extends BaseService {
     }
   }
 }
+

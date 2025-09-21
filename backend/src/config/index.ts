@@ -13,4 +13,7 @@ export const env = {
     accountId: process.env.HOSTAWAY_ACCOUNT_ID,
   },
   googlePlacesAPIKey: process.env.GOOGLE_PLACES_API_KEY,
+  googlePlacesBaseUrl: process.env.GOOGLE_PLACES_BASE_URL,
+  gooleClientId: process.env.GOOGLE_CLIENT_ID,
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET
 };
