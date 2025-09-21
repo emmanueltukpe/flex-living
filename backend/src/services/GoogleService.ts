@@ -139,7 +139,6 @@ export class GoogleService extends BaseService {
       );
 
       if (response.status !== 200) {
-        console.log(response.data);
         throw new ExternalApiError(
           "Google Places",
           response.data.error_message || response.data.status
@@ -184,7 +183,7 @@ export class GoogleService extends BaseService {
         address: place.formattedAddress,
         rating: place.rating,
         totalRatings: place.userRatingCount,
-        reviews: this.normalizeGoogleReviews(place.reviews, place.id),
+        reviews: this.normalizeGoogleReviews(place.reviews ?? [], place.id),
       }));
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -203,28 +202,30 @@ export class GoogleService extends BaseService {
     googleReviews: GoogleReview[],
     placeId: string
   ): Review[] {
-    return googleReviews.map((review, index) => ({
-      _id: `google_${placeId}_${index}`,
-      externalId: parseInt(`${Date.now()}${index}`), // Generate unique ID
-      type: "guest-to-host" as const,
-      status: "published" as const,
-      rating: review.rating * 2, // Convert 5-star to 10-star scale
-      publicReview: review.text.text || "",
-      privateReview: undefined,
-      reviewCategory: [],
-      submittedAt: new Date(review.publishTime),
-      guestName: review.authorAttribution.displayName,
-      listingId: placeId,
-      listingName: "Google Place",
-      channel: "Google" as const,
-      reservationId: `google_${placeId}_${index}`,
-      showOnWebsite: false,
-      responseText: undefined,
-      respondedAt: undefined,
-      helpful: 0,
-      notHelpful: 0,
-      source: review.googleMapsUri,
-    }));
+    return googleReviews.length === 0
+      ? []
+      : googleReviews.map((review, index) => ({
+          _id: `google_${placeId}_${index}`,
+          externalId: parseInt(`${Date.now()}${index}`), // Generate unique ID
+          type: "guest-to-host" as const,
+          status: "published" as const,
+          rating: review.rating * 2, // Convert 5-star to 10-star scale
+          publicReview: review.text?.text || "",
+          privateReview: undefined,
+          reviewCategory: [],
+          submittedAt: new Date(review.publishTime),
+          guestName: review.authorAttribution?.displayName,
+          listingId: placeId,
+          listingName: "Google Place",
+          channel: "Google" as const,
+          reservationId: `google_${placeId}_${index}`,
+          showOnWebsite: false,
+          responseText: undefined,
+          respondedAt: undefined,
+          helpful: 0,
+          notHelpful: 0,
+          source: review.googleMapsUri,
+        }));
   }
 
   private getMockReviewsData(): {

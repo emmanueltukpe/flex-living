@@ -47,7 +47,6 @@ export class PropertyService extends BaseService {
     reviewService?: any
   ): Promise<PropertyWithReviews> {
     const property = await this.getPropertyById(id);
-    console.log(property);
     
 
     let reviews: any[] = [];

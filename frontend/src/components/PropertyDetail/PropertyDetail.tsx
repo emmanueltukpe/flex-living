@@ -1,23 +1,44 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { propertiesApi, reviewsApi, Review, Property, ReviewStatistics } from '../../services/api';
-import { 
-  Star, 
-  Calendar, 
-  User, 
-  ThumbsUp, 
-  MapPin, 
-  Bed, 
-  Bath, 
-  Users, 
-  ArrowLeft,
+import {
+  Box,
+  Container,
+  Grid,
+  Card,
+  CardMedia,
+  Typography,
+  Stack,
+  Avatar,
+  Chip,
+  LinearProgress,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Paper,
+  Tabs,
+  Tab
+} from '@mui/material';
+import {
+  ArrowBack,
+  Star as StarIcon,
+  CalendarToday,
+  Person,
+  ThumbUp,
+  LocationOn,
+  Hotel as BedIcon,
+  Bathtub,
+  People,
   TrendingUp,
-  MessageSquare,
-  Eye,
-  Filter,
-  BarChart3
-} from 'lucide-react';
-import './PropertyDetail.css';
+  Chat,
+  Visibility,
+  FilterList,
+  Analytics,
+  Home,
+  CheckCircle
+} from '@mui/icons-material';
+import { propertiesApi, reviewsApi, Review, Property } from '../../services/api';
 
 interface PropertyAnalytics {
   avgRating: number;
@@ -34,7 +55,6 @@ const PropertyDetail: React.FC = () => {
   const [property, setProperty] = useState<Property | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [filteredReviews, setFilteredReviews] = useState<Review[]>([]);
-  const [statistics, setStatistics] = useState<ReviewStatistics | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'reviews' | 'analytics'>('overview');
   const [reviewFilters, setReviewFilters] = useState({
@@ -44,64 +64,63 @@ const PropertyDetail: React.FC = () => {
     showOnWebsite: ''
   });
 
-  useEffect(() => {
-    if (propertyId) {
-      loadPropertyData();
-    }
-  }, [propertyId]);
-
-  useEffect(() => {
-    applyFilters();
-  }, [reviews, reviewFilters]);
-
-  const loadPropertyData = async () => {
+  const loadPropertyData = useCallback(async () => {
     if (!propertyId) return;
-    
+
     setLoading(true);
     try {
       // Load property details
       const propertyRes = await propertiesApi.getById(propertyId);
-      setProperty(propertyRes.data);
+      setProperty(propertyRes.data.property);
 
       // Load all reviews for this property
-      const reviewsRes = await reviewsApi.getAll({ 
-        listingId: propertyRes.data.externalId,
-        limit: 100 
+      const reviewsRes = await reviewsApi.getAll({
+        listingId: propertyRes.data.property.externalId,
+        limit: 100
       });
       setReviews(reviewsRes.data);
-
-      // Load statistics for this property
-      const statsRes = await reviewsApi.getStatistics({ 
-        listingId: propertyRes.data.externalId 
-      });
-      setStatistics(statsRes.data);
     } catch (error) {
       console.error('Error loading property data:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [propertyId]);
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...reviews];
 
     if (reviewFilters.status) {
       filtered = filtered.filter(review => review.status === reviewFilters.status);
     }
+
     if (reviewFilters.channel) {
       filtered = filtered.filter(review => review.channel === reviewFilters.channel);
     }
+
     if (reviewFilters.rating) {
-      const rating = parseInt(reviewFilters.rating);
-      filtered = filtered.filter(review => review.rating >= rating);
+      const minRating = parseInt(reviewFilters.rating);
+      filtered = filtered.filter(review => review.rating >= minRating);
     }
+
     if (reviewFilters.showOnWebsite) {
       const showOnWebsite = reviewFilters.showOnWebsite === 'true';
       filtered = filtered.filter(review => review.showOnWebsite === showOnWebsite);
     }
 
     setFilteredReviews(filtered);
-  };
+  }, [reviews, reviewFilters]);
+
+  useEffect(() => {
+    if (propertyId) {
+      loadPropertyData();
+    }
+  }, [propertyId, loadPropertyData]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [reviews, reviewFilters, applyFilters]);
+
+
 
   const analytics = useMemo((): PropertyAnalytics => {
     if (!reviews.length) {
@@ -181,379 +200,539 @@ const PropertyDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="property-detail-loading">
-        <div className="spinner"></div>
-        <p>Loading property details...</p>
-      </div>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: 2 }}>
+        <LinearProgress sx={{ width: '100%', maxWidth: 300 }} />
+        <Typography variant="body2" color="text.secondary">
+          Loading property details...
+        </Typography>
+      </Box>
     );
   }
 
   if (!property) {
     return (
-      <div className="property-detail-error">
-        <h2>Property not found</h2>
-        <p>The property you're looking for doesn't exist or has been removed.</p>
-        <Link to="/" className="btn btn-primary">
-          <ArrowLeft size={16} />
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: 2, textAlign: 'center' }}>
+        <Typography variant="h4" color="primary" sx={{ fontWeight: 700 }}>
+          Property not found
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+          The property you're looking for doesn't exist or has been removed.
+        </Typography>
+        <Button
+          component={Link}
+          to="/"
+          variant="contained"
+          startIcon={<ArrowBack />}
+          sx={{ textTransform: 'none' }}
+        >
           Back to Dashboard
-        </Link>
-      </div>
+        </Button>
+      </Box>
     );
   }
 
   const uniqueChannels = Array.from(new Set(reviews.map(r => r.channel)));
 
   return (
-    <div className="property-detail">
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       {/* Header */}
-      <div className="property-detail-header">
-        <div className="container">
-          <Link to="/" className="back-link">
-            <ArrowLeft size={16} />
+      <Paper elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Container maxWidth="lg" sx={{ py: 3 }}>
+          <Button
+            component={Link}
+            to="/"
+            startIcon={<ArrowBack />}
+            sx={{ mb: 3, textTransform: 'none', color: 'text.secondary' }}
+          >
             Back to Dashboard
-          </Link>
-          <div className="property-header-content">
-            <h1>{property.name}</h1>
-            <div className="property-meta">
-              <div className="property-location">
-                <MapPin size={16} />
-                <span>{property.address}</span>
-              </div>
-              <div className="property-features">
-                <div className="feature">
-                  <Bed size={14} />
-                  <span>{property.bedrooms} bed</span>
-                </div>
-                <div className="feature">
-                  <Bath size={14} />
-                  <span>{property.bathrooms} bath</span>
-                </div>
-                <div className="feature">
-                  <Users size={14} />
-                  <span>{property.maxGuests} guests</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+          </Button>
+
+          <Stack spacing={2}>
+            <Typography variant="h3" sx={{ fontWeight: 700, color: 'primary.main' }}>
+              {property.name}
+            </Typography>
+
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <LocationOn sx={{ color: 'text.secondary', fontSize: 20 }} />
+              <Typography variant="body1" color="text.secondary">
+                {property.address}
+              </Typography>
+            </Stack>
+
+            <Stack direction="row" spacing={4}>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <BedIcon sx={{ fontSize: 18, color: 'text.primary' }} />
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  {property.bedrooms} bed{property.bedrooms !== 1 ? 's' : ''}
+                </Typography>
+              </Stack>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Bathtub sx={{ fontSize: 18, color: 'text.primary' }} />
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  {property.bathrooms} bath{property.bathrooms !== 1 ? 's' : ''}
+                </Typography>
+              </Stack>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <People sx={{ fontSize: 18, color: 'text.primary' }} />
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  {property.maxGuests} guest{property.maxGuests !== 1 ? 's' : ''}
+                </Typography>
+              </Stack>
+            </Stack>
+          </Stack>
+        </Container>
+      </Paper>
 
       {/* Property Image */}
       {property.imageUrl && (
-        <div className="property-image-section">
-          <div className="container">
-            <img 
-              src={property.imageUrl} 
-              alt={property.name}
-              className="property-main-image"
-            />
-          </div>
-        </div>
+        <Paper elevation={0} sx={{ bgcolor: 'background.paper' }}>
+          <Container maxWidth="lg" sx={{ py: 4 }}>
+            <Card sx={{ borderRadius: 3, overflow: 'hidden', boxShadow: 3 }}>
+              <CardMedia
+                component="img"
+                height="400"
+                image={property.imageUrl}
+                alt={property.name}
+                sx={{ objectFit: 'cover' }}
+              />
+            </Card>
+          </Container>
+        </Paper>
       )}
 
       {/* Navigation Tabs */}
-      <div className="property-tabs">
-        <div className="container">
-          <div className="tabs">
-            <button
-              className={`tab ${activeTab === 'overview' ? 'active' : ''}`}
-              onClick={() => setActiveTab('overview')}
-            >
-              Overview
-            </button>
-            <button
-              className={`tab ${activeTab === 'reviews' ? 'active' : ''}`}
-              onClick={() => setActiveTab('reviews')}
-            >
-              Reviews ({reviews.length})
-            </button>
-            <button
-              className={`tab ${activeTab === 'analytics' ? 'active' : ''}`}
-              onClick={() => setActiveTab('analytics')}
-            >
-              <BarChart3 size={16} />
-              Analytics
-            </button>
-          </div>
-        </div>
-      </div>
+      <Paper elevation={0} sx={{ borderBottom: 1, borderColor: 'divider', position: 'sticky', top: 0, zIndex: 10 }}>
+        <Container maxWidth="lg">
+          <Tabs
+            value={activeTab}
+            onChange={(_, newValue) => setActiveTab(newValue)}
+            sx={{
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                fontWeight: 500,
+                fontSize: '1rem',
+                minHeight: 64,
+              }
+            }}
+          >
+            <Tab
+              value="overview"
+              label="Overview"
+              icon={<Home />}
+              iconPosition="start"
+            />
+            <Tab
+              value="reviews"
+              label={`Reviews (${filteredReviews.length})`}
+              icon={<Chat />}
+              iconPosition="start"
+            />
+            <Tab
+              value="analytics"
+              label="Analytics"
+              icon={<Analytics />}
+              iconPosition="start"
+            />
+          </Tabs>
+        </Container>
+      </Paper>
 
       {/* Tab Content */}
-      <div className="property-content">
-        <div className="container">
-          {activeTab === 'overview' && (
-            <div className="overview-content">
-              {/* Quick Stats */}
-              <div className="quick-stats">
-                <div className="stat-card">
-                  <div className="stat-icon">
-                    <Star />
-                  </div>
-                  <div className="stat-content">
-                    <div className="stat-value">{analytics.avgRating.toFixed(1)}</div>
-                    <div className="stat-label">Average Rating</div>
-                  </div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-icon">
-                    <MessageSquare />
-                  </div>
-                  <div className="stat-content">
-                    <div className="stat-value">{analytics.totalReviews}</div>
-                    <div className="stat-label">Total Reviews</div>
-                  </div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-icon">
-                    <Eye />
-                  </div>
-                  <div className="stat-content">
-                    <div className="stat-value">{analytics.websiteReviews}</div>
-                    <div className="stat-label">Website Reviews</div>
-                  </div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-icon">
-                    <TrendingUp />
-                  </div>
-                  <div className="stat-content">
-                    <div className="stat-value">{analytics.publishedReviews}</div>
-                    <div className="stat-label">Published</div>
-                  </div>
-                </div>
-              </div>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        {activeTab === 'overview' && (
+          <Stack spacing={4}>
+            {/* Quick Stats */}
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Card sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2, transition: 'all 0.2s', '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 } }}>
+                  <Box sx={{ width: 48, height: 48, bgcolor: 'secondary.main', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <StarIcon sx={{ color: 'primary.main', fontSize: 24 }} />
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}>
+                      {analytics.avgRating.toFixed(1)}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Average Rating
+                    </Typography>
+                  </Box>
+                </Card>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Card sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2, transition: 'all 0.2s', '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 } }}>
+                  <Box sx={{ width: 48, height: 48, bgcolor: 'secondary.main', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Chat sx={{ color: 'primary.main', fontSize: 24 }} />
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}>
+                      {analytics.totalReviews}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Total Reviews
+                    </Typography>
+                  </Box>
+                </Card>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Card sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2, transition: 'all 0.2s', '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 } }}>
+                  <Box sx={{ width: 48, height: 48, bgcolor: 'secondary.main', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Visibility sx={{ color: 'primary.main', fontSize: 24 }} />
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}>
+                      {analytics.websiteReviews}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Website Reviews
+                    </Typography>
+                  </Box>
+                </Card>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Card sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2, transition: 'all 0.2s', '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 } }}>
+                  <Box sx={{ width: 48, height: 48, bgcolor: 'secondary.main', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <TrendingUp sx={{ color: 'primary.main', fontSize: 24 }} />
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main', mb: 0.5 }}>
+                      {analytics.publishedReviews}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Published
+                    </Typography>
+                  </Box>
+                </Card>
+              </Grid>
+            </Grid>
 
-              {/* Property Description */}
-              {property.description && (
-                <div className="property-description">
-                  <h3>About this property</h3>
-                  <p>{property.description}</p>
-                </div>
-              )}
+            {/* Property Description */}
+            {property.description && (
+              <Card sx={{ p: 4 }}>
+                <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main', mb: 2 }}>
+                  About this property
+                </Typography>
+                <Typography variant="body1" sx={{ lineHeight: 1.7, color: 'text.primary' }}>
+                  {property.description}
+                </Typography>
+              </Card>
+            )}
 
-              {/* Amenities */}
-              {property.amenities && property.amenities.length > 0 && (
-                <div className="property-amenities">
-                  <h3>Amenities</h3>
-                  <div className="amenities-grid">
-                    {property.amenities.map((amenity, index) => (
-                      <div key={index} className="amenity-item">
-                        {amenity}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+            {/* Amenities */}
+            {property.amenities && property.amenities.length > 0 && (
+              <Card sx={{ p: 4 }}>
+                <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main', mb: 3 }}>
+                  Amenities
+                </Typography>
+                <Grid container spacing={2}>
+                  {property.amenities.map((amenity, index) => (
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
+                      <Chip
+                        label={amenity}
+                        variant="outlined"
+                        sx={{
+                          width: '100%',
+                          justifyContent: 'flex-start',
+                          bgcolor: 'background.default',
+                          '& .MuiChip-label': { px: 2, py: 1 }
+                        }}
+                        icon={<CheckCircle sx={{ fontSize: 18 }} />}
+                      />
+                    </Grid>
+                  ))}
+                </Grid>
+              </Card>
+            )}
+          </Stack>
+        )}
 
-          {activeTab === 'reviews' && (
-            <div className="reviews-content">
-              {/* Review Filters */}
-              <div className="review-filters">
-                <div className="filters-header">
-                  <h3>
-                    <Filter size={18} />
-                    Filter Reviews
-                  </h3>
-                </div>
-                <div className="filters-grid">
-                  <div className="filter-group">
-                    <label>Status</label>
-                    <select
+        {activeTab === 'reviews' && (
+          <Stack spacing={4}>
+            {/* Review Filters */}
+            <Card sx={{ p: 3 }}>
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+                <FilterList sx={{ color: 'primary.main' }} />
+                <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                  Filter Reviews
+                </Typography>
+              </Stack>
+
+              <Grid container spacing={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Status</InputLabel>
+                    <Select
                       value={reviewFilters.status}
+                      label="Status"
                       onChange={(e) => setReviewFilters({...reviewFilters, status: e.target.value})}
                     >
-                      <option value="">All Statuses</option>
-                      <option value="published">Published</option>
-                      <option value="pending">Pending</option>
-                      <option value="rejected">Rejected</option>
-                    </select>
-                  </div>
-                  <div className="filter-group">
-                    <label>Channel</label>
-                    <select
+                      <MenuItem value="">All Statuses</MenuItem>
+                      <MenuItem value="published">Published</MenuItem>
+                      <MenuItem value="pending">Pending</MenuItem>
+                      <MenuItem value="rejected">Rejected</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Channel</InputLabel>
+                    <Select
                       value={reviewFilters.channel}
+                      label="Channel"
                       onChange={(e) => setReviewFilters({...reviewFilters, channel: e.target.value})}
                     >
-                      <option value="">All Channels</option>
+                      <MenuItem value="">All Channels</MenuItem>
                       {uniqueChannels.map(channel => (
-                        <option key={channel} value={channel}>{channel}</option>
+                        <MenuItem key={channel} value={channel}>{channel}</MenuItem>
                       ))}
-                    </select>
-                  </div>
-                  <div className="filter-group">
-                    <label>Min Rating</label>
-                    <select
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Min Rating</InputLabel>
+                    <Select
                       value={reviewFilters.rating}
+                      label="Min Rating"
                       onChange={(e) => setReviewFilters({...reviewFilters, rating: e.target.value})}
                     >
-                      <option value="">Any Rating</option>
-                      <option value="8">8+ Stars</option>
-                      <option value="6">6+ Stars</option>
-                      <option value="4">4+ Stars</option>
-                    </select>
-                  </div>
-                  <div className="filter-group">
-                    <label>Website Visibility</label>
-                    <select
+                      <MenuItem value="">Any Rating</MenuItem>
+                      <MenuItem value="8">8+ Stars</MenuItem>
+                      <MenuItem value="6">6+ Stars</MenuItem>
+                      <MenuItem value="4">4+ Stars</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Website Visibility</InputLabel>
+                    <Select
                       value={reviewFilters.showOnWebsite}
+                      label="Website Visibility"
                       onChange={(e) => setReviewFilters({...reviewFilters, showOnWebsite: e.target.value})}
                     >
-                      <option value="">All Reviews</option>
-                      <option value="true">Shown on Website</option>
-                      <option value="false">Hidden from Website</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
+                      <MenuItem value="">All Reviews</MenuItem>
+                      <MenuItem value="true">Shown on Website</MenuItem>
+                      <MenuItem value="false">Hidden from Website</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+            </Card>
 
-              {/* Reviews List */}
-              <div className="reviews-list">
-                <div className="reviews-header">
-                  <h3>{filteredReviews.length} review{filteredReviews.length !== 1 ? 's' : ''}</h3>
-                </div>
+            {/* Reviews List */}
+            <Card sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main', mb: 3 }}>
+                {filteredReviews.length} review{filteredReviews.length !== 1 ? 's' : ''}
+              </Typography>
 
-                {filteredReviews.length === 0 ? (
-                  <div className="no-reviews">
-                    <p>No reviews match the current filters.</p>
-                  </div>
-                ) : (
-                  <div className="reviews-grid">
-                    {filteredReviews.map((review) => (
-                      <div key={review._id} className="review-card">
-                        <div className="review-header">
-                          <div className="reviewer-info">
-                            <div className="reviewer-avatar">
-                              <User size={20} />
-                            </div>
-                            <div className="reviewer-details">
-                              <h4>{review.guestName}</h4>
-                              <div className="review-meta">
-                                <div className="review-date">
-                                  <Calendar size={14} />
-                                  <span>{new Date(review.submittedAt).toLocaleDateString()}</span>
-                                </div>
-                                <div className="review-channel">
-                                  <span className={`channel-badge ${review.channel.toLowerCase()}`}>
-                                    {review.channel}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="review-rating">
-                            <Star size={16} fill="currentColor" />
-                            <span>{review.rating}/10</span>
-                          </div>
-                        </div>
+              {filteredReviews.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 6 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    No reviews match the current filters.
+                  </Typography>
+                </Box>
+              ) : (
+                <Stack spacing={3}>
+                  {filteredReviews.map((review) => (
+                    <Card key={review._id} variant="outlined" sx={{ p: 3, transition: 'all 0.2s', '&:hover': { boxShadow: 2 } }}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
+                        <Stack direction="row" spacing={2}>
+                          <Avatar sx={{ bgcolor: 'background.default', color: 'text.secondary' }}>
+                            <Person />
+                          </Avatar>
+                          <Stack>
+                            <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                              {review.guestName}
+                            </Typography>
+                            <Stack direction="row" spacing={2} alignItems="center">
+                              <Stack direction="row" alignItems="center" spacing={0.5}>
+                                <CalendarToday sx={{ fontSize: 14, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary">
+                                  {new Date(review.submittedAt).toLocaleDateString()}
+                                </Typography>
+                              </Stack>
+                              <Chip
+                                label={review.channel}
+                                size="small"
+                                variant="outlined"
+                                sx={{ fontSize: '0.75rem' }}
+                              />
+                            </Stack>
+                          </Stack>
+                        </Stack>
+                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                          <StarIcon sx={{ color: 'secondary.main', fontSize: 18 }} />
+                          <Typography variant="body1" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                            {review.rating}/10
+                          </Typography>
+                        </Stack>
+                      </Stack>
 
-                        <div className="review-content">
-                          <p>{review.publicReview}</p>
-                        </div>
+                      <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.6 }}>
+                        {review.publicReview}
+                      </Typography>
 
-                        <div className="review-footer">
-                          <div className="review-status">
-                            <span className={`status-badge ${review.status}`}>
-                              {review.status}
-                            </span>
-                            {review.showOnWebsite && (
-                              <span className="website-badge">
-                                <Eye size={12} />
-                                On Website
-                              </span>
-                            )}
-                          </div>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Stack direction="row" spacing={1}>
+                          <Chip
+                            label={review.status}
+                            size="small"
+                            color={review.status === 'published' ? 'success' : review.status === 'pending' ? 'warning' : 'error'}
+                            sx={{ textTransform: 'capitalize' }}
+                          />
+                          {review.showOnWebsite && (
+                            <Chip
+                              label="On Website"
+                              size="small"
+                              variant="outlined"
+                              icon={<Visibility sx={{ fontSize: 14 }} />}
+                              sx={{ fontSize: '0.75rem' }}
+                            />
+                          )}
+                        </Stack>
 
-                          <div className="review-actions">
-                            <button
-                              className="helpful-btn"
-                              onClick={() => handleHelpfulClick(review._id, true)}
-                            >
-                              <ThumbsUp size={14} />
-                              {review.helpful || 0}
-                            </button>
-                          </div>
-                        </div>
+                        <Button
+                          size="small"
+                          startIcon={<ThumbUp />}
+                          onClick={() => handleHelpfulClick(review._id, true)}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          {review.helpful || 0}
+                        </Button>
+                      </Stack>
 
-                        {review.responseText && (
-                          <div className="review-response">
-                            <h5>Response from FlexLiving:</h5>
-                            <p>{review.responseText}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'analytics' && (
-            <div className="analytics-content">
-              {/* Analytics Overview */}
-              <div className="analytics-overview">
-                <h3>Performance Analytics</h3>
-                <div className="analytics-grid">
-                  <div className="analytics-card">
-                    <h4>Channel Distribution</h4>
-                    <div className="channel-breakdown">
-                      {Object.entries(analytics.channelBreakdown).map(([channel, count]) => (
-                        <div key={channel} className="channel-item">
-                          <span className="channel-name">{channel}</span>
-                          <span className="channel-count">{count} reviews</span>
-                          <div className="channel-bar">
-                            <div
-                              className="channel-fill"
-                              style={{ width: `${(count / analytics.totalReviews) * 100}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="analytics-card">
-                    <h4>Category Ratings</h4>
-                    <div className="category-breakdown">
-                      {Object.entries(analytics.categoryBreakdown).map(([category, rating]) => (
-                        <div key={category} className="category-item">
-                          <span className="category-name">{category}</span>
-                          <span className="category-rating">{(rating / reviews.length).toFixed(1)}/10</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Monthly Trends */}
-              <div className="monthly-trends">
-                <h3>Monthly Review Trends</h3>
-                <div className="trends-chart">
-                  {analytics.monthlyTrends.map((trend, index) => (
-                    <div key={index} className="trend-item">
-                      <div className="trend-month">{trend.month}</div>
-                      <div className="trend-bar">
-                        <div
-                          className="trend-fill"
-                          style={{ height: `${(trend.reviews / Math.max(...analytics.monthlyTrends.map(t => t.reviews))) * 100}%` }}
-                        ></div>
-                      </div>
-                      <div className="trend-stats">
-                        <div className="trend-count">{trend.reviews}</div>
-                        <div className="trend-rating">{trend.avgRating || 0}/10</div>
-                      </div>
-                    </div>
+                      {review.responseText && (
+                        <Paper sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderLeft: 4, borderColor: 'secondary.main' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
+                            Response from FlexLiving:
+                          </Typography>
+                          <Typography variant="body2" sx={{ lineHeight: 1.5 }}>
+                            {review.responseText}
+                          </Typography>
+                        </Paper>
+                      )}
+                    </Card>
                   ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+                </Stack>
+              )}
+            </Card>
+          </Stack>
+        )}
+
+        {activeTab === 'analytics' && (
+          <Stack spacing={4}>
+            {/* Analytics Overview */}
+            <Card sx={{ p: 4 }}>
+              <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main', mb: 3 }}>
+                Performance Analytics
+              </Typography>
+              <Grid container spacing={4}>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Card variant="outlined" sx={{ p: 3, height: '100%' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main', mb: 2 }}>
+                      Channel Distribution
+                    </Typography>
+                    <Stack spacing={2}>
+                      {Object.entries(analytics.channelBreakdown).map(([channel, count]) => (
+                        <Box key={channel}>
+                          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {channel}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {count} reviews
+                            </Typography>
+                          </Stack>
+                          <LinearProgress
+                            variant="determinate"
+                            value={(count / analytics.totalReviews) * 100}
+                            sx={{
+                              height: 8,
+                              borderRadius: 4,
+                              bgcolor: 'background.default',
+                              '& .MuiLinearProgress-bar': {
+                                bgcolor: 'secondary.main',
+                                borderRadius: 4,
+                              }
+                            }}
+                          />
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Card>
+                </Grid>
+
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Card variant="outlined" sx={{ p: 3, height: '100%' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main', mb: 2 }}>
+                      Category Ratings
+                    </Typography>
+                    <Stack spacing={2}>
+                      {Object.entries(analytics.categoryBreakdown).map(([category, rating]) => (
+                        <Stack key={category} direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 1.5, bgcolor: 'background.default', borderRadius: 2 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 500, textTransform: 'capitalize' }}>
+                            {category}
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                            {(rating / reviews.length).toFixed(1)}/10
+                          </Typography>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  </Card>
+                </Grid>
+              </Grid>
+            </Card>
+
+            {/* Monthly Trends */}
+            <Card sx={{ p: 4 }}>
+              <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main', mb: 3 }}>
+                Monthly Review Trends
+              </Typography>
+              <Stack direction="row" spacing={2} alignItems="end" sx={{ height: 200, p: 2 }}>
+                {analytics.monthlyTrends.map((trend, index) => (
+                  <Stack key={index} alignItems="center" spacing={1} sx={{ flex: 1, height: '100%' }}>
+                    <Stack alignItems="center" spacing={0.5}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                        {trend.reviews}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {trend.avgRating || 0}/10
+                      </Typography>
+                    </Stack>
+                    <Box
+                      sx={{
+                        flex: 1,
+                        width: 20,
+                        bgcolor: 'background.default',
+                        borderRadius: 1,
+                        display: 'flex',
+                        alignItems: 'end',
+                        minHeight: 20,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: '100%',
+                          bgcolor: 'secondary.main',
+                          borderRadius: 1,
+                          minHeight: 4,
+                          height: `${(trend.reviews / Math.max(...analytics.monthlyTrends.map(t => t.reviews))) * 100}%`,
+                          transition: 'height 0.3s ease',
+                        }}
+                      />
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+                      {trend.month}
+                    </Typography>
+                  </Stack>
+                ))}
+              </Stack>
+            </Card>
+          </Stack>
+        )}
+      </Container>
+    </Box>
   );
 };
 

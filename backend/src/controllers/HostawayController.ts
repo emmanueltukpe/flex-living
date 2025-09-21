@@ -12,7 +12,6 @@ export class HostawayController extends BaseController {
 
   getReviews = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const useApi = this.parseBooleanParam(req.query.useApi as string) || false;
-    console.log(useApi);
     
     const result = await this.hostawayService.fetchReviews(true);
     
