@@ -24,7 +24,7 @@ info:
 servers:
   - url: http://localhost:5001
     description: Development server
-  - url: ""
+  - url: "https://flex-living-a3s0.onrender.com/"
     description: Production server (to be configured)
 
 tags:
