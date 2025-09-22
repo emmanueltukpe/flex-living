@@ -2,9 +2,16 @@
 
 A comprehensive review management system for FlexLiving properties, featuring a manager dashboard for review moderation and a public-facing review display that matches FlexLiving's design style.
 
-## Features Completed ✅
+## URLs
+
+- Frontend: <https://flex-living-app.onrender.com/>
+- Backend: <https://flex-living-a3s0.onrender.com/>
+- Limitations: It was deployed on a free teir, which might cause application to sleep
+
+## Features
 
 ### 1. Manager Dashboard
+
 - **Review Management**: View, filter, sort, and manage all property reviews
 - **Multi-property Support**: Switch between different properties
 - **Advanced Filtering**: Filter by channel, rating, status, date range, and website visibility
@@ -13,6 +20,7 @@ A comprehensive review management system for FlexLiving properties, featuring a 
 - **Bulk Actions**: Export reviews to CSV, sync with Hostaway
 
 ### 2. Analytics & Insights
+
 - **Performance Metrics**: Average ratings, total reviews, response rates
 - **Trend Analysis**: Monthly review trends with interactive charts
 - **Category Breakdown**: Performance by review categories (cleanliness, location, etc.)
@@ -20,6 +28,7 @@ A comprehensive review management system for FlexLiving properties, featuring a 
 - **Smart Insights**: Automatic identification of areas needing improvement
 
 ### 3. Public Review Display
+
 - **FlexLiving Style**: Matches the brand's olive/lime color scheme and modern design
 - **Property Showcase**: Hero section with property details and amenities
 - **Curated Reviews**: Only displays manager-approved reviews
@@ -27,6 +36,7 @@ A comprehensive review management system for FlexLiving properties, featuring a 
 - **Mobile Responsive**: Optimized for all device sizes
 
 ### 4. API Integration
+
 - **Hostaway Integration**: Mock data implementation with real API structure
 - **Review Normalization**: Standardized data format across all sources
 - **Google Reviews**: Documentation and exploration of integration possibilities
@@ -34,12 +44,14 @@ A comprehensive review management system for FlexLiving properties, featuring a 
 ## Technical Stack
 
 ### Backend
+
 - **Node.js & Express.js** with TypeScript
 - **MongoDB** with Mongoose ODM
 - **RESTful API** architecture
 - **CORS enabled** for frontend communication
 
 ### Frontend
+
 - **React** with TypeScript
 - **Chart.js** for analytics visualization
 - **Lucide React** for icons
@@ -48,6 +60,7 @@ A comprehensive review management system for FlexLiving properties, featuring a 
 ## API Endpoints
 
 ### Reviews
+
 - `GET /api/reviews` - Get all reviews with filters
 - `GET /api/reviews/statistics` - Get review statistics
 - `GET /api/reviews/:id` - Get single review
@@ -55,32 +68,43 @@ A comprehensive review management system for FlexLiving properties, featuring a 
 - `POST /api/reviews/:id/helpful` - Mark review as helpful
 
 ### Properties
+
 - `GET /api/properties` - Get all properties
 - `GET /api/properties/:id` - Get property with reviews
 
 ### Integrations
+
 - `GET /api/hostaway/reviews` - Fetch Hostaway reviews (mock/real)
 - `POST /api/hostaway/sync` - Sync all data
 - `GET /api/google/reviews` - Google Reviews integration info
 
-## Google Reviews Integration Findings
+## Google Reviews Integration and Findings
+
+### Google Integrations
+
+- `GET /api/google/reviews` - Get Google Reviews for a specific place with their Place Ids
+- `GET /api/google/place-search` - Search for Google Places by name
 
 ### Feasibility Assessment
-Google Reviews CAN be integrated using the **Google Places API**, but with limitations:
+
+Google Reviews was integrated using the **Google Places API**.
 
 ### Requirements
+
 1. Google Cloud Platform account
 2. Enable Places API
 3. API key with proper restrictions
 4. Place IDs for each property
 
 ### Limitations
+
 - Maximum 5 most relevant reviews per place
 - Reviews selected by Google's algorithm
 - API usage limits and costs apply
 - Cannot retrieve all reviews
 
 ### Alternative Solutions
+
 1. **Google My Business API** - Better for managed locations
 2. **Third-party aggregation services** - More comprehensive
 3. **Review invitation systems** - Direct guest feedback
@@ -88,11 +112,13 @@ Google Reviews CAN be integrated using the **Google Places API**, but with limit
 ## Installation & Setup
 
 ### Prerequisites
+
 - Node.js (v14+)
 - MongoDB (local or cloud)
 - npm or yarn
 
 ### Backend Setup
+
 ```bash
 cd backend
 npm install
@@ -101,16 +127,22 @@ npm run dev
 ```
 
 ### Frontend Setup
+
 ```bash
 cd frontend
 npm install
 npm start
 ```
 
+### Start both frontend and backend with a single command
+
+./start.sh
+
 ## Environment Variables
 
 ### Backend (.env)
-```
+
+```env
 PORT=5000
 MONGODB_URI=mongodb://localhost:27017/flexliving-reviews
 CORS_ORIGIN=http://localhost:3000
@@ -124,8 +156,8 @@ GOOGLE_PLACES_API_KEY=your_google_key_here
 1. **Start MongoDB** locally or use cloud instance
 2. **Start Backend** on port 5000
 3. **Start Frontend** on port 3000
-4. **Access Dashboard** at http://localhost:3000
-5. **View Sample Property** at http://localhost:3000/property/prop_001
+4. **Access Dashboard** at <http://localhost:3000>
+5. **View Sample Property** at [http://localhost:3000/property/prop_001](http://localhost:3000/property/prop_001)
 
 ## Key Design Decisions
 
@@ -148,23 +180,13 @@ GOOGLE_PLACES_API_KEY=your_google_key_here
 ## Testing
 
 The application has been tested with:
+
 - 10+ mock reviews across 5 properties
 - Multiple booking channels (Airbnb, Booking.com, Direct)
 - Various rating ranges and review statuses
 - Responsive design on mobile/tablet/desktop
 
-## Deployment Recommendations
+## AI Tools Used
 
-1. **Backend**: Deploy to Heroku, AWS EC2, or DigitalOcean
-2. **Frontend**: Deploy to Vercel, Netlify, or AWS S3+CloudFront
-3. **Database**: Use MongoDB Atlas for production
-4. **Environment**: Separate staging and production environments
-5. **Monitoring**: Implement error tracking (Sentry) and analytics
-
-## Contact
-
-For questions or support regarding this assessment, please contact the development team.
-
----
-
-**Note**: This project was built as an assessment for FlexLiving. All mock data and implementations are for demonstration purposes only.
+- Augment code with Claude Sonnet 4
+- Genspart ai with Claude Opus 4.1
