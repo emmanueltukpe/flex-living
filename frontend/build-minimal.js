@@ -142,7 +142,7 @@ try {
   const publicDir = path.join(__dirname, 'public');
   const buildDir = path.join(__dirname, 'build');
   
-  const publicFiles = ['flex.webp', 'manifest.json', 'robots.txt', 'logo192.png', 'logo512.png'];
+  const publicFiles = ['flex.webp', 'manifest.json', 'robots.txt'];
   publicFiles.forEach(file => {
     const src = path.join(publicDir, file);
     const dest = path.join(buildDir, file);
