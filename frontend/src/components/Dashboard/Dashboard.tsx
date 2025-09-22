@@ -13,7 +13,6 @@ import {
 import {
   RefreshCw,
   Download,
-  Upload,
   BarChart3,
   Building2,
   MessageSquare,
@@ -189,20 +188,9 @@ const Dashboard: React.FC = () => {
                 Sync Data
               </Button>
               <Button
-                variant="outlined"
+                variant="contained"
                 startIcon={<Download size={18} />}
                 onClick={handleExport}
-                sx={{
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 500
-                }}
-              >
-                Export CSV
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<Upload size={18} />}
                 sx={{
                   borderRadius: 2,
                   textTransform: 'none',
@@ -213,8 +201,9 @@ const Dashboard: React.FC = () => {
                   }
                 }}
               >
-                Import Reviews
+                Export CSV
               </Button>
+
             </Stack>
           </Stack>
         </Container>
