@@ -14,34 +14,12 @@ export class HealthMonitoringController extends BaseController {
   }
 
   /**
-   * Get recent health monitoring logs
-   */
-  public getLogs = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const limit = this.parseNumber(req.query.limit as string) || 100;
-    
-    if (limit < 1 || limit > 1000) {
-      this.sendError(res, 'Limit must be between 1 and 1000', 400);
-      return;
-    }
-
-    const logs = await this.healthMonitoringService.getRecentLogs(limit);
-    
-    this.sendSuccess(res, {
-      logs,
-      count: logs.length,
-      limit
-    }, 'Health monitoring logs retrieved successfully');
-  });
-
-  /**
    * Get health monitoring statistics
    */
   public getStats = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const logStats = this.healthMonitoringService.getLogStatistics();
     const jobStatuses = this.cronJobManager.getAllJobStatuses();
     
     const stats = {
-      logging: logStats,
       cronJobs: {
         total: this.cronJobManager.getJobCount(),
         running: jobStatuses.filter(job => job.status === 'running').length,
@@ -160,27 +138,13 @@ export class HealthMonitoringController extends BaseController {
   });
 
   /**
-   * Clear health monitoring logs
-   */
-  public clearLogs = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    try {
-      await this.healthMonitoringService.clearLogs();
-      
-      this.sendSuccess(res, null, 'Health monitoring logs cleared successfully');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.sendError(res, `Failed to clear logs: ${errorMessage}`, 500);
-    }
-  });
-
-  /**
    * Update health monitoring configuration
    */
   public updateConfig = this.asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { cronJob, logging } = req.body;
+    const { cronJob } = req.body;
     
-    if (!cronJob && !logging) {
-      this.sendError(res, 'At least one configuration section (cronJob or logging) must be provided', 400);
+    if (!cronJob) {
+      this.sendError(res, 'At least one configuration section (cronJob) must be provided', 400);
       return;
     }
 
@@ -191,11 +155,6 @@ export class HealthMonitoringController extends BaseController {
         updateData.cronJob = cronJob;
       }
       
-      if (logging) {
-        updateData.logging = logging;
-      }
-
-      this.healthMonitoringService.updateConfig(updateData);
       
       const updatedConfig = this.healthMonitoringService.getConfig();
       this.sendSuccess(res, updatedConfig, 'Health monitoring configuration updated successfully');

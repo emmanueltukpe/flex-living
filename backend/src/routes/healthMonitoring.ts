@@ -76,9 +76,6 @@ router.use(checkHealthMonitoringInitialized);
  *       503:
  *         description: Health monitoring system not initialized
  */
-router.get("/logs", (req, res, next) =>
-  healthMonitoringController!.getLogs(req, res, next)
-);
 
 /**
  * @swagger
@@ -254,9 +251,6 @@ router.post("/trigger", (req, res, next) =>
  *       503:
  *         description: Health monitoring system not initialized
  */
-router.delete("/logs/clear", (req, res, next) =>
-  healthMonitoringController!.clearLogs(req, res, next)
-);
 
 /**
  * @swagger

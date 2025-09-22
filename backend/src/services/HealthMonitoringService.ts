@@ -1,11 +1,9 @@
 import axios, { AxiosResponse, AxiosError } from "axios";
 import { BaseService } from "./BaseService";
 import { HealthCheckResult, HealthMonitoringConfig } from "../types";
-import { HealthLogger } from "../utils/HealthLogger";
 
 export class HealthMonitoringService extends BaseService {
   private config: HealthMonitoringConfig;
-  private logger: HealthLogger;
   private baseUrl: string;
 
   constructor(
@@ -15,14 +13,6 @@ export class HealthMonitoringService extends BaseService {
     super();
     this.config = config;
     this.baseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl; // Remove trailing slash
-
-    // Initialize logger
-    this.logger = new HealthLogger({
-      filePath: config.logging.filePath,
-      maxFileSize: this.parseFileSize(config.logging.maxFileSize),
-      maxFiles: config.logging.maxFiles,
-      format: config.logging.format,
-    });
   }
 
   /**
@@ -56,16 +46,6 @@ export class HealthMonitoringService extends BaseService {
         details: response.data,
       };
 
-      // Log the health check result
-      if (this.config.logging.enabled) {
-        await this.logger.logHealthCheck(healthCheckResult, {
-          cronJobId: "health-monitor",
-          executionTime: responseTime,
-          retryCount,
-          environment: process.env.NODE_ENV || "development",
-        });
-      }
-
       return healthCheckResult;
     } catch (error) {
       const responseTime = Date.now() - startTime;
@@ -75,16 +55,6 @@ export class HealthMonitoringService extends BaseService {
         responseTime,
         retryCount
       );
-
-      // Log the error
-      if (this.config.logging.enabled) {
-        await this.logger.logHealthCheck(healthCheckResult, {
-          cronJobId: "health-monitor",
-          executionTime: responseTime,
-          retryCount,
-          environment: process.env.NODE_ENV || "development",
-        });
-      }
 
       return healthCheckResult;
     }
@@ -135,43 +105,6 @@ export class HealthMonitoringService extends BaseService {
     return lastResult!;
   }
 
-  /**
-   * Get recent health monitoring logs
-   */
-  public async getRecentLogs(limit: number = 100): Promise<any[]> {
-    return this.logger.getRecentLogs(limit);
-  }
-
-  /**
-   * Get health monitoring statistics
-   */
-  public getLogStatistics(): any {
-    return this.logger.getLogStats();
-  }
-
-  /**
-   * Clear all health monitoring logs
-   */
-  public async clearLogs(): Promise<void> {
-    return this.logger.clearLogs();
-  }
-
-  /**
-   * Update health monitoring configuration
-   */
-  public updateConfig(newConfig: Partial<HealthMonitoringConfig>): void {
-    this.config = { ...this.config, ...newConfig };
-
-    // Reinitialize logger if logging config changed
-    if (newConfig.logging) {
-      this.logger = new HealthLogger({
-        filePath: this.config.logging.filePath,
-        maxFileSize: this.parseFileSize(this.config.logging.maxFileSize),
-        maxFiles: this.config.logging.maxFiles,
-        format: this.config.logging.format,
-      });
-    }
-  }
 
   /**
    * Get current configuration
@@ -302,10 +235,6 @@ export class HealthMonitoringService extends BaseService {
 
     if (config.cronJob.timeout <= 0) {
       throw new Error("Timeout must be positive");
-    }
-
-    if (config.logging.enabled && !config.logging.filePath) {
-      throw new Error("Log file path is required when logging is enabled");
     }
   }
 
