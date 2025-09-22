@@ -4,18 +4,25 @@ import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
 import path from "path";
 import { DatabaseManager } from "./database/DatabaseManager";
-import { ServerConfig } from "./types";
+import { ServerConfig, HealthMonitoringConfig } from "./types";
 import reviewRoutes from "./routes/reviews";
 import propertyRoutes from "./routes/properties";
 import hostawayRoutes from "./routes/hostaway";
 import googleRoutes from "./routes/google";
+import healthMonitoringRoutes, {
+  initializeHealthMonitoringRoutes,
+} from "./routes/healthMonitoring";
 import { seedDatabase } from "./utils/seedDatabase";
 import { env } from "./config";
+import { HealthMonitoringService } from "./services/HealthMonitoringService";
+import { CronJobManager } from "./services/CronJobManager";
 
 class Server {
   private app: express.Application;
   private config: ServerConfig;
   private databaseManager: DatabaseManager | null = null;
+  private healthMonitoringService: HealthMonitoringService | null = null;
+  private cronJobManager: CronJobManager | null = null;
 
   constructor() {
     this.app = express();
@@ -28,6 +35,7 @@ class Server {
   private loadConfiguration(): ServerConfig {
     return {
       port: typeof env.port === "string" ? parseInt(env.port, 10) : env.port,
+      host: env.host,
       corsOrigin: env.corsOrigin,
       mongoUri: env.mongoUri || "mongodb://localhost:27017/flexliving-reviews",
     };
@@ -107,6 +115,7 @@ class Server {
     this.app.use("/api/hostaway", hostawayRoutes);
     this.app.use("/api/google", googleRoutes);
     this.app.use("/api/templates", require("./routes/templates").default);
+    this.app.use("/api/health-monitoring", healthMonitoringRoutes);
 
     // Health check endpoint
     this.app.get("/api/health", async (req, res) => {
@@ -174,6 +183,9 @@ class Server {
       // Seed database with mock data on first run
       await seedDatabase();
 
+      // Initialize health monitoring system
+      await this.initializeHealthMonitoring();
+
       // Start the server
       const server = this.app.listen(this.config.port, () => {
         console.log(`Server running on port ${this.config.port}`);
@@ -193,13 +205,102 @@ class Server {
     }
   }
 
-  public async shutdown(): Promise<void> {
+  /**
+   * Construct the base URL for health monitoring
+   */
+  private constructBaseUrl(): string {
+    // Use explicit base URL if provided
+    if (env.healthMonitoring.baseUrl) {
+      return env.healthMonitoring.baseUrl;
+    }
+
+    // Construct base URL from host and port
+    console.log(this.config.host);
+    
+    const protocol =
+      env.nodeEnv === "production" && this.config.host !== "localhost"
+        ? "https"
+        : "http";
+    return `${protocol}://${this.config.host}:${this.config.port}`;
+  }
+
+  /**
+   * Initialize health monitoring system
+   */
+  private async initializeHealthMonitoring(): Promise<void> {
+    if (!env.healthMonitoring.enabled) {
+      console.log("🔍 Health monitoring is disabled");
+      return;
+    }
+
     try {
+      // Create health monitoring configuration
+      const healthConfig: HealthMonitoringConfig = {
+        cronJob: {
+          schedule: env.healthMonitoring.cronSchedule,
+          enabled: true,
+          maxRetries: env.healthMonitoring.maxRetries,
+          retryDelay: env.healthMonitoring.retryDelay,
+          timeout: env.healthMonitoring.timeout,
+        },
+        healthCheckEndpoint: env.healthMonitoring.endpoint,
+        logging: env.healthMonitoring.logging,
+      };
+
+      // Validate configuration
+      HealthMonitoringService.validateConfig(healthConfig);
+
+      // Initialize health monitoring service with dynamic base URL
+      const baseUrl = this.constructBaseUrl();
+      this.healthMonitoringService = new HealthMonitoringService(
+        healthConfig,
+        baseUrl
+      );
+
+      // Initialize cron job manager
+      this.cronJobManager = new CronJobManager();
+      this.cronJobManager.setHealthMonitoringService(
+        this.healthMonitoringService
+      );
+
+      // Create and start the health monitoring cron job
+      this.cronJobManager.createHealthMonitoringJob(healthConfig.cronJob);
+
+      // Initialize health monitoring routes
+      initializeHealthMonitoringRoutes(
+        this.healthMonitoringService,
+        this.cronJobManager
+      );
+
+      console.log(`✅ Health monitoring system initialized`);
+      console.log(`📅 Cron schedule: ${env.healthMonitoring.cronSchedule}`);
+      console.log(
+        `📊 Health endpoint: ${baseUrl}${env.healthMonitoring.endpoint}`
+      );
+      console.log(`📝 Logging to: ${env.healthMonitoring.logging.filePath}`);
+    } catch (error) {
+      console.error("❌ Failed to initialize health monitoring:", error);
+      // Don't throw here - let the server start without health monitoring
+    }
+  }
+
+  public async shutdown(): Promise<void> {
+    console.log("🛑 Shutting down server...");
+
+    try {
+      // Shutdown health monitoring system
+      if (this.cronJobManager) {
+        this.cronJobManager.shutdown();
+      }
+
+      // Disconnect from database
       if (this.databaseManager) {
         await this.databaseManager.disconnect();
       }
+
+      console.log("✅ Server shutdown complete");
     } catch (error) {
-      // Error during shutdown - handled silently
+      console.error("❌ Error during shutdown:", error);
     }
   }
 

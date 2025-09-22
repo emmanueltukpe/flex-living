@@ -261,6 +261,7 @@ export interface DatabaseConfig {
 // Server Configuration Types
 export interface ServerConfig {
   port: number;
+  host: string;
   corsOrigin: string;
   mongoUri: string;
 }
@@ -290,4 +291,77 @@ export interface RequestHandler<
 export interface ResponseHandler<T = unknown> {
   json: (data: ApiResponse<T> | ApiErrorResponse) => void;
   status: (code: number) => ResponseHandler<T>;
+}
+
+// Health Monitoring Types
+export interface HealthCheckResult {
+  status: "healthy" | "unhealthy" | "degraded";
+  timestamp: string;
+  responseTime: number;
+  httpStatusCode: number;
+  endpoint: string;
+  message?: string;
+  error?: string;
+  details?: {
+    database?: {
+      status: "healthy" | "unhealthy";
+      state: string;
+      host?: string;
+      database?: string;
+      error?: string;
+    };
+    uptime?: number;
+  };
+}
+
+export interface HealthMonitoringLog {
+  id: string;
+  timestamp: string;
+  checkResult: HealthCheckResult;
+  applicationStatus: "healthy" | "unhealthy" | "degraded";
+  metadata: {
+    cronJobId: string;
+    executionTime: number;
+    retryCount?: number;
+    environment: string;
+  };
+}
+
+export interface CronJobConfig {
+  schedule: string;
+  enabled: boolean;
+  timezone?: string;
+  maxRetries: number;
+  retryDelay: number;
+  timeout: number;
+}
+
+export interface CronJobStatus {
+  id: string;
+  name: string;
+  schedule: string;
+  enabled: boolean;
+  lastRun?: string;
+  nextRun?: string;
+  status: "running" | "stopped" | "error";
+  runCount: number;
+  errorCount: number;
+  lastError?: string;
+}
+
+export interface HealthMonitoringConfig {
+  cronJob: CronJobConfig;
+  healthCheckEndpoint: string;
+  logging: {
+    enabled: boolean;
+    filePath: string;
+    maxFileSize: string;
+    maxFiles: number;
+    format: "json" | "text";
+  };
+  notifications?: {
+    enabled: boolean;
+    webhookUrl?: string;
+    emailRecipients?: string[];
+  };
 }
