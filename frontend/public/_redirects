@@ -1,0 +1,15 @@
+# Netlify/Render redirects for React Router
+# This ensures that all routes are handled by React Router
+
+# Handle React Router routes
+/*    /index.html   200
+
+# API proxy (if needed for development)
+/api/*  https://your-backend-service.onrender.com/api/:splat  200
+
+# Security headers
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-XSS-Protection: 1; mode=block
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
