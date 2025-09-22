@@ -42,20 +42,19 @@ const PublicReviews: React.FC = () => {
   }, [reviews]);
 
   useEffect(() => {
+    const loadPropertyAndReviews = async () => {
+      try {
+        const response = await propertiesApi.getById(propertyId || '');
+        setProperty(response.data.property);
+        setReviews(response.data.reviews);
+      } catch (error) {
+        console.error('Error loading property:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     loadPropertyAndReviews();
   }, [propertyId]);
-
-  const loadPropertyAndReviews = async () => {
-    try {
-      const response = await propertiesApi.getById(propertyId || '');
-      setProperty(response.data.property);
-      setReviews(response.data.reviews);
-    } catch (error) {
-      console.error('Error loading property:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleHelpfulClick = async (reviewId: string) => {
     try {

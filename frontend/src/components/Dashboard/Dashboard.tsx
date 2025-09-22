@@ -18,8 +18,6 @@ import {
   Building2,
   MessageSquare,
   MapPin,
-  ToggleLeft,
-  ToggleRight
 } from 'lucide-react';
 import { reviewsApi, propertiesApi, hostawayApi, Review, Property, ReviewStatistics } from '../../services/api';
 import ReviewsList from './ReviewsList';
@@ -48,11 +46,7 @@ const Dashboard: React.FC = () => {
   const [reviewSource, setReviewSource] = useState<'hostaway' | 'google'>('hostaway');
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<string>('');
 
-  useEffect(() => {
-    loadData();
-  }, [filters, selectedProperty]);
-
-  const loadData = async () => {
+  const loadData = React.useCallback(async () => {
     setLoading(true);
     try {
       // Load properties
@@ -80,7 +74,11 @@ const Dashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, selectedProperty]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleSync = async () => {
     setLoading(true);

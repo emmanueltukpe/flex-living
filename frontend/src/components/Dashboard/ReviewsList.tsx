@@ -16,10 +16,6 @@ import {
   TextField,
   Alert,
   Pagination,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Tooltip,
   Avatar,
   Paper
@@ -91,7 +87,7 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ reviews, onUpdateReview, load
   const paginatedReviews = sortedReviews.slice(startIndex, endIndex);
 
   // Reset to first page when reviews change
-  useMemo(() => {
+  React.useEffect(() => {
     setCurrentPage(1);
   }, [reviews.length, sortField, sortOrder]);
 
@@ -170,14 +166,6 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ reviews, onUpdateReview, load
     }
   };
 
-  const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-      case 'published': return 'badge-success';
-      case 'pending': return 'badge-warning';
-      case 'rejected': return 'badge-error';
-      default: return '';
-    }
-  };
 
   const handleToggleWebsite = (review: Review) => {
     onUpdateReview(review._id, { showOnWebsite: !review.showOnWebsite });

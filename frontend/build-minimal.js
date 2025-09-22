@@ -148,7 +148,7 @@ try {
     const dest = path.join(buildDir, file);
     if (fs.existsSync(src)) {
       fs.copyFileSync(src, dest);
-      console.log(\`✅ Copied \${file}\`);
+      console.log(`Copied ${file}`);
     }
   });
 
